@@ -23,7 +23,7 @@ io.on('connection', (socket) => {
   console.log('User connected on:', socket.id);
 
   socket.on('register', (username) => {
-    if (connectedUsers.size >= 4) {
+    if (connectedUsers.size >= 2) {
       socket.emit('error', 'Room is full');
       return;
     }
