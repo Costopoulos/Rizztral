@@ -6,249 +6,242 @@ const socket = io('http://localhost:3000');
 const REACT_APP_ELEVENLABS_API_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY;
 const GAME_SERVER_URL = 'http://localhost:8000';
 
+// Voice IDs for different roles
+const VOICE_IDS = {
+  host: 'Ybqj6CIlqb6M85s9Bl4n', // Josh - deep male voice
+  contestant: 'TC0Zp7WVFzhA8zpTlRqV' // Rachel - default voice
+};
+
 function App() {
-    const [username, setUsername] = useState('');
-    const [isConnected, setIsConnected] = useState(false);
-    const [userList, setUserList] = useState([]);
-    const [error, setError] = useState('');
-    const [gameText, setGameText] = useState('');
-    const [isPlaying, setIsPlaying] = useState(false);
+  const [gameState, setGameState] = useState({
+    round: 1,
+    currentContestant: 1,
+    isPlaying: false,
+    isGameStarted: false,
+    isGameEnded: false
+  });
+  const [gameText, setGameText] = useState('');
+  const [error, setError] = useState('');
+  const [userList, setUserList] = useState([]);
+  const [conversationHistory, setConversationHistory] = useState([]);
 
-    useEffect(() => {
-        socket.on('connect', () => {
-            setIsConnected(true);
-            setError('');
-        });
+  const dummyResponses = [
+    "I believe in taking life one day at a time and enjoying every moment. I love spontaneous adventures!",
+    "My ideal date would be cooking together at home, then watching the sunset from a rooftop.",
+    "I think communication is key in any relationship. I'm always honest about my feelings.",
+    "I love traveling and experiencing new cultures. Life's too short to stay in one place!",
+    "Family is everything to me. I hope to build a loving home filled with laughter.",
+    "I'm passionate about my career but know how to maintain work-life balance."
+  ];
 
-        socket.on('disconnect', () => {
-            setIsConnected(false);
-        });
+  const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-        socket.on('userList', (users) => {
-            setUserList(users);
-        });
+  const textToSpeech = async (text, role = 'contestant') => {
+    try {
+      const voiceId = VOICE_IDS[role];
+      const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+        method: 'POST',
+        headers: {
+          'Accept': 'audio/mpeg',
+          'xi-api-key': REACT_APP_ELEVENLABS_API_KEY,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: text,
+          model_id: 'eleven_monolingual_v1',
+          voice_settings: {
+            stability: 0.5,
+            similarity_boost: 0.5
+          }
+        }),
+      });
 
-        socket.on('error', (message) => {
-            setError(message);
-        });
+      if (!response.ok) throw new Error('Failed to convert text to speech');
 
-        return () => {
-            socket.off('connect');
-            socket.off('disconnect');
-            socket.off('userList');
-            socket.off('error');
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
+
+      setGameState(prev => ({ ...prev, isPlaying: true }));
+      audio.play();
+
+      return new Promise((resolve) => {
+        audio.onended = () => {
+          setGameState(prev => ({ ...prev, isPlaying: false }));
+          URL.revokeObjectURL(audioUrl);
+          resolve();
         };
-    }, []);
+      });
+    } catch (error) {
+      console.error('Error converting text to speech:', error);
+      setError('Failed to play audio');
+      setGameState(prev => ({ ...prev, isPlaying: false }));
+    }
+  };
 
-    const textToSpeech = async (text) => {
-        try {
-            const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM', {
-                method: 'POST',
-                headers: {
-                    'Accept': 'audio/mpeg',
-                    'xi-api-key': REACT_APP_ELEVENLABS_API_KEY,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    text: text,
-                    model_id: 'eleven_monolingual_v1',
-                    voice_settings: {
-                        stability: 0.5,
-                        similarity_boost: 0.5
-                    }
-                }),
+  const fetchAndSpeak = async (endpoint) => {
+    try {
+      const response = await fetch(`${GAME_SERVER_URL}${endpoint}`);
+      const data = await response.json();
+      setGameText(data.text);
+
+      // Use host voice for host-related endpoints
+      const isHostVoice = endpoint.includes('host-') || endpoint.includes('announce-winner');
+      await textToSpeech(data.text, isHostVoice ? 'host' : 'contestant');
+
+      return data;
+    } catch (error) {
+      console.error(`Error fetching from ${endpoint}:`, error);
+      setError(`Failed to fetch from ${endpoint}`);
+    }
+  };
+
+  const runGameLoop = async () => {
+    try {
+      // Reset game state
+      await fetch(`${GAME_SERVER_URL}/reset-game`);
+      setGameState(prev => ({
+        ...prev,
+        round: 1,
+        currentContestant: 1,
+        isGameStarted: true,
+        isGameEnded: false
+      }));
+
+      // Initial introductions
+      await fetchAndSpeak('/host-introduction');
+
+      // Main game loop
+      for (let round = 1; round <= 3; round++) {
+        setGameState(prev => ({ ...prev, round }));
+
+        // AI asks question
+        await fetchAndSpeak('/ai-question');
+
+        // Loop through contestants
+        for (let contestant = 1; contestant <= 2; contestant++) {
+          setGameState(prev => ({ ...prev, currentContestant: contestant }));
+
+          // Simulate conversation with dummy response
+          const dummyResponse = dummyResponses[Math.floor(Math.random() * dummyResponses.length)];
+          setConversationHistory(prev => [...prev, {
+            round,
+            contestant,
+            question: gameText,
+            response: dummyResponse
+          }]);
+
+          // Post the rating request
+          try {
+            const ratingResponse = await fetch(`${GAME_SERVER_URL}/rate-contestant/contestant${contestant}`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                conversation: dummyResponse
+              })
             });
+            const ratingData = await ratingResponse.json();
+            setConversationHistory(prev => {
+              const newHistory = [...prev];
+              newHistory[newHistory.length - 1].rating = ratingData.rating;
+              return newHistory;
+            });
+          } catch (error) {
+            console.error('Error rating contestant:', error);
+          }
 
-            if (!response.ok) throw new Error('Failed to convert text to speech');
+          await delay(2000); // 2-second pause
 
-            const audioBlob = await response.blob();
-            const audioUrl = URL.createObjectURL(audioBlob);
-            const audio = new Audio(audioUrl);
-
-            setIsPlaying(true);
-            audio.play();
-
-            audio.onended = () => {
-                setIsPlaying(false);
-                URL.revokeObjectURL(audioUrl);
-            };
-        } catch (error) {
-            console.error('Error converting text to speech:', error);
-            setError('Failed to play audio');
+          // Host interrupt if not last contestant
+          if (contestant < 2) {
+            await fetchAndSpeak('/host-interrupt/next_contestant');
+          }
         }
-    };
 
-    const handleHostIntroduction = async () => {
-        try {
-            const response = await fetch(`${GAME_SERVER_URL}/host-introduction`);
-            const data = await response.json();
-            setGameText(data.text);
-            await textToSpeech(data.text);
-        } catch (error) {
-            console.error('Error fetching host introduction:', error);
-            setError('Failed to fetch host introduction');
+        // Move to next round if not last round
+        if (round < 3) {
+          await fetch(`${GAME_SERVER_URL}/next-round`);
         }
-    };
+      }
 
-    const handleAIIntroduction = async () => {
-        try {
-            const response = await fetch(`${GAME_SERVER_URL}/ai-introduction`);
-            const data = await response.json();
-            setGameText(data.text);
-            await textToSpeech(data.text);
-        } catch (error) {
-            console.error('Error fetching AI introduction:', error);
-            setError('Failed to fetch AI introduction');
-        }
-    };
+      // Announce winner
+      await fetchAndSpeak('/announce-winner');
+      setGameState(prev => ({ ...prev, isGameEnded: true }));
 
-    const handleAIQuestion = async () => {
-        try {
-            const response = await fetch(`${GAME_SERVER_URL}/ai-question`);
-            const data = await response.json();
-            setGameText(data.text);
-            await textToSpeech(data.text);
-        } catch (error) {
-            console.error('Error fetching AI question:', error);
-            setError('Failed to fetch AI question');
-        }
-    };
+    } catch (error) {
+      console.error('Error in game loop:', error);
+      setError('Game loop failed');
+    }
+  };
 
-    const handleHostInterrupt = async () => {
-        try {
-            const response = await fetch(`${GAME_SERVER_URL}/host-interrupt/next_contestant`);
-            const data = await response.json();
-            setGameText(data.text);
-            await textToSpeech(data.text);
-        } catch (error) {
-            console.error('Error fetching host interrupt:', error);
-            setError('Failed to fetch host interrupt');
-        }
-    };
+  return (
+    <div className="p-8 max-w-4xl mx-auto">
+      <h1 className="text-3xl font-bold mb-6">AI Dating Game Show</h1>
 
-    const handleAnnounceWinner = async () => {
-        try {
-            const response = await fetch(`${GAME_SERVER_URL}/announce-winner`);
-            const data = await response.json();
-            setGameText(data.text);
-            await textToSpeech(data.text);
-        } catch (error) {
-            console.error('Error fetching winner announcement:', error);
-            setError('Failed to fetch winner announcement');
-        }
-    };
-
-    const handleResetGame = async () => {
-        try {
-            const response = await fetch(`${GAME_SERVER_URL}/reset-game`);
-            const data = await response.json();
-            setGameText('Game has been reset!');
-            setError('');
-        } catch (error) {
-            console.error('Error resetting game:', error);
-            setError('Failed to reset game');
-        }
-    };
-
-    const handleJoin = (e) => {
-        e.preventDefault();
-        if (username.trim()) {
-            socket.emit('register', username);
-        }
-    };
-
-    return (
-        <div className="p-4">
-            <h1 className="text-2xl font-bold mb-4">AI Voice Game</h1>
-
-            <div className="mb-4">
-                Connection status: {isConnected ? 'Connected' : 'Disconnected'}
-            </div>
-
-            {error && (
-                <div className="text-red-500 mb-4">
-                    Error: {error}
-                </div>
-            )}
-
-            <form onSubmit={handleJoin} className="mb-4">
-                <input
-                    type="text"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    placeholder="Enter your username"
-                    className="border p-2 mr-2"
-                />
-                <button
-                    type="submit"
-                    className="bg-blue-500 text-white px-4 py-2 rounded"
-                >
-                    Join Game
-                </button>
-            </form>
-
-            <div className="mb-4">
-                <button
-                    onClick={handleHostIntroduction}
-                    disabled={isPlaying}
-                    className="bg-green-500 text-white px-4 py-2 rounded mr-2"
-                >
-                    Play Host Introduction
-                </button>
-                <button
-                    onClick={handleAIIntroduction}
-                    disabled={isPlaying}
-                    className="bg-purple-500 text-white px-4 py-2 rounded mr-2"
-                >
-                    Play AI Introduction
-                </button>
-                <button
-                    onClick={handleAIQuestion}
-                    disabled={isPlaying}
-                    className="bg-blue-500 text-white px-4 py-2 rounded mr-2"
-                >
-                    Play AI Question
-                </button>
-                <button
-                    onClick={handleHostInterrupt}
-                    disabled={isPlaying}
-                    className="bg-yellow-500 text-white px-4 py-2 rounded"
-                >
-                    Play Host Interrupt
-                </button>
-                <button
-                    onClick={handleAnnounceWinner}
-                    disabled={isPlaying}
-                    className="bg-green-500 text-white px-4 py-2 rounded mr-2"
-                >
-                    Announce Winner
-                </button>
-                <button
-                    onClick={handleResetGame}
-                    disabled={isPlaying}
-                    className="bg-red-500 text-white px-4 py-2 rounded"
-                >
-                    Reset Game
-                </button>
-            </div>
-
-            {gameText && (
-                <div className="mb-4 p-4 bg-gray-100 rounded">
-                    <h2 className="font-bold mb-2">Current Text:</h2>
-                    <p>{gameText}</p>
-                </div>
-            )}
-
-            <div>
-                <h2 className="text-xl font-bold mb-2">Connected Users:</h2>
-                <ul>
-                    {userList.map((user, index) => (
-                        <li key={index} className="mb-1">{user}</li>
-                    ))}
-                </ul>
-            </div>
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          {error}
         </div>
-    );
+      )}
+
+      <div className="mb-6">
+        <div className="text-lg mb-2">Round: {gameState.round} / 3</div>
+        <div className="text-lg mb-2">Current Contestant: {gameState.currentContestant} / 2</div>
+        <div className="text-lg mb-4">Status: {gameState.isPlaying ? 'Speaking' : 'Waiting'}</div>
+      </div>
+
+      <div className="mb-6">
+        <button
+          onClick={runGameLoop}
+          disabled={gameState.isPlaying || gameState.isGameStarted}
+          className="bg-green-500 text-white px-6 py-3 rounded-lg text-lg font-semibold mr-4 disabled:bg-gray-400"
+        >
+          Start Game
+        </button>
+
+        <button
+          onClick={() => fetch(`${GAME_SERVER_URL}/reset-game`)}
+          disabled={gameState.isPlaying || !gameState.isGameStarted}
+          className="bg-red-500 text-white px-6 py-3 rounded-lg text-lg font-semibold disabled:bg-gray-400"
+        >
+          Reset Game
+        </button>
+      </div>
+
+      {gameText && (
+        <div className="bg-gray-100 p-6 rounded-lg mb-6">
+          <h2 className="font-bold mb-2">Current Text:</h2>
+          <p className="text-lg">{gameText}</p>
+        </div>
+      )}
+
+      {conversationHistory.length > 0 && (
+        <div className="bg-white shadow-lg rounded-lg p-6">
+          <h2 className="text-2xl font-bold mb-4">Conversation History</h2>
+          {conversationHistory.map((conv, index) => (
+            <div key={index} className="mb-6 p-4 border rounded-lg">
+              <div className="font-semibold mb-2">Round {conv.round} - Contestant {conv.contestant}</div>
+              <div className="mb-2">
+                <span className="font-medium text-purple-600">AI Question:</span>
+                <p className="ml-4">{conv.question}</p>
+              </div>
+              <div className="mb-2">
+                <span className="font-medium text-blue-600">Contestant Response:</span>
+                <p className="ml-4">{conv.response}</p>
+              </div>
+              {conv.rating !== undefined && (
+                <div className="text-green-600 font-medium">
+                  Rating: {conv.rating}/10
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default App;
