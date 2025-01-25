@@ -64,10 +64,10 @@ function App() {
       const audioBlob = await response.blob();
       const audioUrl = URL.createObjectURL(audioBlob);
       const audio = new Audio(audioUrl);
-
+      
       setIsPlaying(true);
       audio.play();
-
+      
       audio.onended = () => {
         setIsPlaying(false);
         URL.revokeObjectURL(audioUrl);
@@ -99,6 +99,30 @@ function App() {
     } catch (error) {
       console.error('Error fetching AI introduction:', error);
       setError('Failed to fetch AI introduction');
+    }
+  };
+
+  const handleAIQuestion = async () => {
+    try {
+      const response = await fetch(`${GAME_SERVER_URL}/ai-question`);
+      const data = await response.json();
+      setGameText(data.text);
+      await textToSpeech(data.text);
+    } catch (error) {
+      console.error('Error fetching AI question:', error);
+      setError('Failed to fetch AI question');
+    }
+  };
+
+  const handleHostInterrupt = async () => {
+    try {
+      const response = await fetch(`${GAME_SERVER_URL}/host-interrupt/next_contestant`);
+      const data = await response.json();
+      setGameText(data.text);
+      await textToSpeech(data.text);
+    } catch (error) {
+      console.error('Error fetching host interrupt:', error);
+      setError('Failed to fetch host interrupt');
     }
   };
 
@@ -150,9 +174,23 @@ function App() {
         <button
           onClick={handleAIIntroduction}
           disabled={isPlaying}
-          className="bg-purple-500 text-white px-4 py-2 rounded"
+          className="bg-purple-500 text-white px-4 py-2 rounded mr-2"
         >
           Play AI Introduction
+        </button>
+        <button
+          onClick={handleAIQuestion}
+          disabled={isPlaying}
+          className="bg-blue-500 text-white px-4 py-2 rounded mr-2"
+        >
+          Play AI Question
+        </button>
+        <button
+          onClick={handleHostInterrupt}
+          disabled={isPlaying}
+          className="bg-yellow-500 text-white px-4 py-2 rounded"
+        >
+          Play Host Interrupt
         </button>
       </div>
 
