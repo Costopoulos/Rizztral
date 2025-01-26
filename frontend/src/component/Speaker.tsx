@@ -28,12 +28,12 @@ export function Speaker() {
     <div className="speaker-container">
       <img
         className="volume"
-        src="pipecat-demo/react/src/img/volume.svg"
+        src="/img/volume.svg"
         alt="Volume Icon"
       />
       <img
         className={`mic ${isConnected ? 'connected' : 'disconnected'}`}
-        src="pipecat-demo/react/src/img/mic.svg"
+        src="/img/mic.svg"
         alt="Mic Icon"
         onClick={handleMicClick}
         style={{ cursor: 'pointer' }} // Makes the mic icon clickable

@@ -21,9 +21,9 @@ function Participant({ imgSrc, name, heart }: ParticipantProps) {
 
 const Participants = () => {
   const participants = [
-    { imgSrc: './src/img/target.jpeg', name: 'Participant 1', heart: '❤️❤️❤️❤️' },
-    { imgSrc: './src/img/target.jpeg', name: 'Participant 2', heart: '❤️❤️❤️❤️' },
-    { imgSrc: './src/img/target.jpeg', name: 'Participant 3', heart: '❤️❤️❤️❤️' },
+    { imgSrc: '/img/target.jpeg', name: 'Participant 1', heart: '❤️❤️❤️❤️' },
+    { imgSrc: '/img/target.jpeg', name: 'Participant 2', heart: '❤️❤️❤️❤️' },
+    { imgSrc: '/img/target.jpeg', name: 'Participant 3', heart: '❤️❤️❤️❤️' },
   ];
 
   return (

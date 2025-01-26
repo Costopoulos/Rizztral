@@ -40,3 +40,112 @@
 .read-the-docs {
   color: #888;
 }
+
+
+body {
+  color: #FBE7E7;
+  font-family: "Inknut Antiqua";
+  background: linear-gradient(0deg, #000 0%, #270C0C 100%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh; /* Ensure full viewport coverage */
+  width: 100vw;
+  margin: 0; /* No body margins to ensure central alignment */
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start; /* Align to the left */
+  align-items: flex-start; /* Align to the top */
+  background-image: url('/src/img/background.png');
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center;
+  border-radius: 40px;
+  height: calc(100vh - 90px); /* Subtract combined top and bottom margins (40px each) */
+  width: calc(100vw - 8vw); /* Subtract combined left and right margins (10vw each) */
+  margin-bottom:20px;
+  overflow: hidden; /* Prevent overflow outside border radius */
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25); /* Add subtle shadow */
+  
+}
+
+.top-container{
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  height:30%;
+  width:100%;
+  margin-top: 3%;
+  margin-right: 4vw;
+  margin-left: 4vw;
+  margin-bottom: 5%;
+  gap:35vw;
+}
+ 
+
+.video-container video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mic-enabled {
+  background-color: #4caf50;
+  color: white;
+}
+
+.mic-disabled {
+  background-color: #f44336;
+  color: white;
+}
+
+.speaker-container {
+  border-radius: 20px;
+  background: rgba(60, 60, 60, 0.66);
+  display: flex; /* Flexbox for horizontal alignment */
+  justify-content: space-between; /* Equal space between icons */
+  align-items: center; /* Vertically center icons */
+  padding: 2vw; /* Add padding based on viewport width */
+  gap: 2vw; /* Space between icons */
+  width: 40vw; /* Container width relative to viewport */
+  height: 10vw; /* Container height relative to viewport */
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25); /* Optional shadow for aesthetics */
+}
+
+.speaker-container img {
+  width: 5vw; /* Icon width relative to viewport */
+  height: auto; /* Maintain aspect ratio */
+  flex-shrink: 0; /* Prevent shrinking */
+  object-fit: contain; /* Ensure proper scaling without distortion */
+}
+
+.bottom-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-top: 5vh;
+
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  height:30%;
+  width:100%;
+  margin-top: 3%;
+  margin-bottom: 5%;
+  gap:1vw;
+ }
+ 
+ .text {
+  flex: 2;
+  text-align: center;
+ }
+
+.p-8 {
+  background-color: rgba(0, 0, 0, 0.7); /* Adds a semi-transparent dark overlay */
+  border-radius: 16px;
+  backdrop-filter: blur(8px);
+}
