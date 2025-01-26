@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import Target from './Target';
-import './Participants.css';
+import './TextBox.css';
 
 
 function TextBox() {

@@ -1,5 +1,9 @@
 import React, {useState, useEffect} from 'react';
 import {io} from 'socket.io-client';
+import Participants from './component/Participants.tsx';
+import YourRank from './component/YourRank.tsx';
+import Target from './component/Target.tsx';
+import Textbox from './component/Textbox.tsx';
 
 const socket = io('http://localhost:3000');
 
@@ -179,6 +183,10 @@ function App() {
   return (
     <div className="p-8 max-w-4xl mx-auto">
       <h1 className="text-3xl font-bold mb-6">AI Dating Game Show</h1>
+      <div className="top-container">
+        <Participants />
+        <YourRank name='lol' />
+      </div>
 
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
