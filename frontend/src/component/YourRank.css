@@ -1,0 +1,32 @@
+.rank-container{
+    background: rgba(176, 172, 172, 0.40);
+    width: 10vw;
+    height: 5vh;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: row;
+    margin-left: 10vw;
+    padding-left: 10vw;
+}
+
+.yourname{
+    color: #FFF;
+    font-family: "Inria Sans";
+    font-size: 36px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: normal;
+    justify-content: center;
+    align-items: center;
+}
+
+.hearts{
+    display: flex;
+    flex-direction: row;
+    margin-left: 10vw;
+}
+
+.yourheart{
+    width: 40%;
+    height: 40%;
+}

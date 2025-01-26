@@ -1,0 +1,11 @@
+.dialogue-box {
+    background: rgba(60, 60, 60, 0.40);
+    border-radius: 20px;
+    padding: 15px;
+    color: #FBE7E7;
+    font-family: "Inria Sans";
+    font-size: clamp(2em, 3vw, 1.2rem);
+    text-align: center;
+    width: 20vw;
+    min-height: 50px;
+}

@@ -1,0 +1,73 @@
+.participants-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    height: 28vh; 
+    width: 30%;
+    padding: 1%;
+    border-radius: 20px;
+    border: 2px solid #FBE7E7;
+    background: rgba(60, 60, 60, 0.40);
+}
+  
+.rizzler {
+    text-align: center;
+    margin-bottom: 0;
+    color: #FBE7E7;
+    font-family: "Inknut Antiqua";
+    font-size: clamp(1rem, 2vw, 2.25rem); /* Responsive font size */
+    font-style: normal;
+    font-weight: 400;
+    line-height: normal;
+}
+
+.container2 {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 2%; /* Use percentage for responsive gap */
+    height: 80%; 
+    padding: 2%;
+    width: 100%;
+}
+
+.participant {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem; /* Use rem for consistent spacing */
+    padding: 5%; /* Percentage padding for responsiveness */
+    border-radius: 10px;
+    width: 20%;
+}
+
+.participant-img {
+    width: 100%; /* Full width of parent */
+    display: flex;
+    justify-content: center;
+}
+
+.participant-img img {
+    width: 100%; /* Full width of parent */
+    max-width: 100px; /* Optional: prevent images from getting too large */
+    height: auto; /* Maintain aspect ratio */
+    border-radius: 20px;
+    object-fit: cover; /* Ensures image covers area without distortion */
+}
+
+.participant-name {
+    color: #FFF;
+    text-align: center;
+    font-family: "Inria Sans";
+    font-size: clamp(0.5rem, 3vw, 1rem); /* Responsive font size */
+    font-style: normal;
+    font-weight: 400;
+    line-height: normal;
+    width: 100%;
+}
+
+.participant-heart {
+    font-size: clamp(1rem, 1vw, 1.5rem); /* Responsive heart size */
+}
