@@ -12,7 +12,9 @@
   "dependencies": {
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "socket.io-client": "^4.8.1"
+    "socket.io-client": "^4.8.1",
+    "@daily-co/daily-react": "^0.22.0",
+    "@daily-co/realtime-ai-daily": "^0.2.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",
