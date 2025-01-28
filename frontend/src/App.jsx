@@ -1,5 +1,5 @@
-import React, {useState, useEffect, useRef} from 'react';
-import {io} from 'socket.io-client';
+import React, { useState, useEffect, useRef } from 'react';
+import { io } from 'socket.io-client';
 
 const socket = io('http://localhost:3000');
 
@@ -8,358 +8,485 @@ const GAME_SERVER_URL = 'http://localhost:8000';
 
 // Voice IDs for different roles
 const VOICE_IDS = {
-  host: 'Ybqj6CIlqb6M85s9Bl4n', // Josh - deep male voice
-  contestant: 'TC0Zp7WVFzhA8zpTlRqV' // Rachel - default voice
+    host: 'Ybqj6CIlqb6M85s9Bl4n',
+    contestant: 'TC0Zp7WVFzhA8zpTlRqV'
 };
 
 function App() {
-  const [gameState, setGameState] = useState({
-    round: 1,
-    currentContestant: 1,
-    isPlaying: false,
-    isGameStarted: false,
-    isGameEnded: false,
-    waitingForUserResponse: false
-  });
-  const [gameText, setGameText] = useState('');
-  const [error, setError] = useState('');
-  const [userList, setUserList] = useState([]);
-  const [conversationHistory, setConversationHistory] = useState([]);
-  const [userResponse, setUserResponse] = useState('');
-  const [timeRemaining, setTimeRemaining] = useState(20);
-  const timerRef = useRef(null);
-
-  const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
-  const textToSpeech = async (text, role = 'contestant') => {
-    try {
-      const voiceId = VOICE_IDS[role];
-      const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
-        method: 'POST',
-        headers: {
-          'Accept': 'audio/mpeg',
-          'xi-api-key': REACT_APP_ELEVENLABS_API_KEY,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          text: text,
-          model_id: 'eleven_monolingual_v1',
-          voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.5
-          }
-        }),
-      });
-
-      if (!response.ok) throw new Error('Failed to convert text to speech');
-
-      const audioBlob = await response.blob();
-      const audioUrl = URL.createObjectURL(audioBlob);
-      const audio = new Audio(audioUrl);
-
-      setGameState(prev => ({ ...prev, isPlaying: true }));
-      audio.play();
-
-      return new Promise((resolve) => {
-        audio.onended = () => {
-          setGameState(prev => ({ ...prev, isPlaying: false }));
-          URL.revokeObjectURL(audioUrl);
-          resolve();
-        };
-      });
-    } catch (error) {
-      console.error('Error converting text to speech:', error);
-      setError('Failed to play audio');
-      setGameState(prev => ({ ...prev, isPlaying: false }));
-    }
-  };
-
-  const fetchAndSpeak = async (endpoint) => {
-    try {
-      const response = await fetch(`${GAME_SERVER_URL}${endpoint}`);
-      const data = await response.json();
-      setGameText(data.text);
-
-      // Use host voice for host-related endpoints
-      const isHostVoice = endpoint.includes('host-') || endpoint.includes('announce-winner');
-      await textToSpeech(data.text, isHostVoice ? 'host' : 'contestant');
-
-      return data;
-    } catch (error) {
-      console.error(`Error fetching from ${endpoint}:`, error);
-      setError(`Failed to fetch from ${endpoint}`);
-    }
-  };
-
-  const startResponseTimer = () => {
-    setTimeRemaining(20);
-    if (timerRef.current) clearInterval(timerRef.current);
-
-    timerRef.current = setInterval(() => {
-      setTimeRemaining(prev => {
-        if (prev <= 1) {
-          clearInterval(timerRef.current);
-          handleTimeUp();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  };
-
-  const handleTimeUp = async () => {
-    if (userResponse.trim() === '') {
-      setError("Time's up! No response submitted.");
-    }
-    await submitUserResponse();
-  };
-
-  const submitUserResponse = async () => {
-    try {
-      const response = await fetch(`${GAME_SERVER_URL}/submit-answer/contestant${gameState.currentContestant}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          response: userResponse
-        })
-      });
-
-      if (!response.ok) throw new Error('Failed to submit response');
-
-      clearInterval(timerRef.current);
-      setGameState(prev => ({ ...prev, waitingForUserResponse: false }));
-      setUserResponse('');
-
-      // Continue with rating
-      const ratingResponse = await fetch(`${GAME_SERVER_URL}/rate-contestant/contestant${gameState.currentContestant}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          conversation: userResponse
-        })
-      });
-      const ratingData = await ratingResponse.json();
-
-      setConversationHistory(prev => {
-        const newHistory = [...prev];
-        newHistory[newHistory.length - 1].response = userResponse;
-        newHistory[newHistory.length - 1].rating = ratingData.rating;
-        return newHistory;
-      });
-
-    } catch (error) {
-      console.error('Error submitting response:', error);
-      setError('Failed to submit response');
-    }
-  };
-
-  const getAIContestantResponse = async () => {
-    try {
-      const response = await fetch(`${GAME_SERVER_URL}/get-ai-response`);
-      const data = await response.json();
-
-      setConversationHistory(prev => [...prev, {
-        round: gameState.round,
-        contestant: gameState.currentContestant,
-        question: gameText,
-        response: data.response
-      }]);
-
-      // Rate the AI response
-      const ratingResponse = await fetch(`${GAME_SERVER_URL}/rate-contestant/contestant${gameState.currentContestant}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          conversation: data.response
-        })
-      });
-      const ratingData = await ratingResponse.json();
-
-      setConversationHistory(prev => {
-        const newHistory = [...prev];
-        newHistory[newHistory.length - 1].rating = ratingData.rating;
-        return newHistory;
-      });
-
-    } catch (error) {
-      console.error('Error getting AI response:', error);
-      setError('Failed to get AI contestant response');
-    }
-  };
-
-  const runGameLoop = async () => {
-    try {
-      // Reset game state
-      await fetch(`${GAME_SERVER_URL}/reset-game`);
-      setGameState(prev => ({
-        ...prev,
+    const [gameState, setGameState] = useState({
         round: 1,
         currentContestant: 1,
-        isGameStarted: true,
-        isGameEnded: false
-      }));
+        isPlaying: false,
+        isGameStarted: false,
+        isGameEnded: false,
+        waitingForUserResponse: false,
+        maxRounds: 3,
+        stage: 'initial',
+        winner: null
+    });
+    const [gameText, setGameText] = useState('');
+    const [error, setError] = useState('');
+    const [userResponse, setUserResponse] = useState('');
+    const [timeRemaining, setTimeRemaining] = useState(20);
+    const [conversationHistory, setConversationHistory] = useState([]);
+    const timerRef = useRef(null);
+    const userResponsePromiseRef = useRef(null);
 
-      // Initial introductions
-      await fetchAndSpeak('/host-introduction');
+    const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-      // Main game loop
-      for (let round = 1; round <= 3; round++) {
-        setGameState(prev => ({ ...prev, round }));
-
-        // AI asks question
-        await fetchAndSpeak('/ai-question');
-
-        // Loop through contestants
-        for (let contestant = 1; contestant <= 2; contestant++) {
-          setGameState(prev => ({
-            ...prev,
-            currentContestant: contestant,
-            waitingForUserResponse: contestant === 1
-          }));
-
-          if (contestant === 1) {
-            // Real user's turn
-            startResponseTimer();
-            // Wait for submitUserResponse to be called
-            await new Promise(resolve => {
-              const checkInterval = setInterval(() => {
-                if (!gameState.waitingForUserResponse) {
-                  clearInterval(checkInterval);
-                  resolve();
+    // Enhanced error handling with retry logic
+    const handleFetchWithRetry = async (url, options = {}, retries = 3) => {
+        let lastError;
+        for (let i = 0; i < retries; i++) {
+            try {
+                const response = await fetch(url, options);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
-              }, 100);
-            });
-          } else {
-            // AI contestant's turn
-            await getAIContestantResponse();
-          }
-
-          await delay(2000); // 2-second pause
-
-          // Host interrupt if not last contestant
-          if (contestant < 2) {
-            await fetchAndSpeak('/host-interrupt/next_contestant');
-          }
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                lastError = error;
+                if (i === retries - 1) break;
+                await delay(1000 * (i + 1));
+            }
         }
-
-        // Move to next round if not last round
-        if (round < 3) {
-          await fetch(`${GAME_SERVER_URL}/next-round`);
-        }
-      }
-
-      // Announce winner
-      await fetchAndSpeak('/announce-winner');
-      setGameState(prev => ({ ...prev, isGameEnded: true }));
-
-    } catch (error) {
-      console.error('Error in game loop:', error);
-      setError('Game loop failed');
-    }
-  };
-
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
+        throw lastError;
     };
-  }, []);
 
-  return (
-    <div className="p-8 max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6">AI Dating Game Show</h1>
+    const textToSpeech = async (text, role = 'contestant') => {
+        try {
+            const voiceId = VOICE_IDS[role];
+            const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'audio/mpeg',
+                    'xi-api-key': REACT_APP_ELEVENLABS_API_KEY,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    text: text,
+                    model_id: 'eleven_monolingual_v1',
+                    voice_settings: {
+                        stability: 0.5,
+                        similarity_boost: 0.5
+                    }
+                }),
+            });
 
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-          {error}
-        </div>
-      )}
+            if (!response.ok) {
+                throw new Error('Failed to convert text to speech');
+            }
 
-      <div className="mb-6">
-        <div className="text-lg mb-2">Round: {gameState.round} / 3</div>
-        <div className="text-lg mb-2">Current Contestant: {gameState.currentContestant} / 2</div>
-        <div className="text-lg mb-4">Status: {gameState.isPlaying ? 'Speaking' : 'Waiting'}</div>
-      </div>
+            const audioBlob = await response.blob();
+            const audioUrl = URL.createObjectURL(audioBlob);
+            const audio = new Audio(audioUrl);
 
-      <div className="mb-6">
-        <button
-          onClick={runGameLoop}
-          disabled={gameState.isPlaying || gameState.isGameStarted}
-          className="bg-green-500 text-white px-6 py-3 rounded-lg text-lg font-semibold mr-4 disabled:bg-gray-400"
-        >
-          Start Game
-        </button>
+            setGameState(prev => ({ ...prev, isPlaying: true }));
 
-        <button
-          onClick={() => fetch(`${GAME_SERVER_URL}/reset-game`)}
-          disabled={gameState.isPlaying || !gameState.isGameStarted}
-          className="bg-red-500 text-white px-6 py-3 rounded-lg text-lg font-semibold disabled:bg-gray-400"
-        >
-          Reset Game
-        </button>
-      </div>
+            return new Promise((resolve) => {
+                audio.onended = () => {
+                    setGameState(prev => ({ ...prev, isPlaying: false }));
+                    URL.revokeObjectURL(audioUrl);
+                    resolve();
+                };
+                audio.play();
+            });
+        } catch (error) {
+            console.error('Error in text-to-speech:', error);
+            setError('Audio playback failed - continuing with text only');
+            setGameState(prev => ({ ...prev, isPlaying: false }));
+        }
+    };
 
-      {gameState.waitingForUserResponse && (
-        <div className="mb-6">
-          <div className="text-xl font-semibold mb-2">Your Turn! Time remaining: {timeRemaining}s</div>
-          <form onSubmit={(e) => {
-            e.preventDefault();
-            submitUserResponse();
-          }}>
-            <textarea
-              value={userResponse}
-              onChange={(e) => setUserResponse(e.target.value)}
-              className="w-full p-4 border rounded-lg mb-4 h-32"
-              placeholder="Type your response here..."
-            />
-            <button
-              type="submit"
-              className="bg-blue-500 text-white px-6 py-3 rounded-lg text-lg font-semibold"
-              disabled={userResponse.trim() === ''}
-            >
-              Submit Response
-            </button>
-          </form>
-        </div>
-      )}
+    const fetchAndSpeak = async (endpoint) => {
+        try {
+            const data = await handleFetchWithRetry(`${GAME_SERVER_URL}${endpoint}`);
+            setGameText(data.text);
 
-      {gameText && (
-        <div className="bg-gray-100 p-6 rounded-lg mb-6">
-          <h2 className="font-bold mb-2">Current Text:</h2>
-          <p className="text-lg">{gameText}</p>
-        </div>
-      )}
+            const isHostVoice = endpoint.includes('host-') || endpoint.includes('announce-winner');
+            await textToSpeech(data.text, isHostVoice ? 'host' : 'contestant');
 
-      {conversationHistory.length > 0 && (
-        <div className="bg-white shadow-lg rounded-lg p-6">
-          <h2 className="text-2xl font-bold mb-4">Conversation History</h2>
-          {conversationHistory.map((conv, index) => (
-            <div key={index} className="mb-6 p-4 border rounded-lg">
-              <div className="font-semibold mb-2">Round {conv.round} - Contestant {conv.contestant}</div>
-              <div className="mb-2">
-                <span className="font-medium text-purple-600">AI Question:</span>
-                <p className="ml-4">{conv.question}</p>
-              </div>
-              <div className="mb-2">
-                <span className="font-medium text-blue-600">Contestant Response:</span>
-                <p className="ml-4">{conv.response}</p>
-              </div>
-              {conv.rating !== undefined && (
-                <div className="text-green-600 font-medium">
-                  Rating: {conv.rating}/10
+            return data;
+        } catch (error) {
+            console.error(`Error in fetchAndSpeak for ${endpoint}:`, error);
+            setError(`Failed to fetch and speak from ${endpoint}`);
+            throw error;
+        }
+    };
+
+    const startResponseTimer = () => {
+        setTimeRemaining(20);
+        if (timerRef.current) clearInterval(timerRef.current);
+
+        timerRef.current = setInterval(() => {
+            setTimeRemaining(prev => {
+                if (prev <= 1) {
+                    clearInterval(timerRef.current);
+                    handleTimeUp();
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+    };
+
+    const handleTimeUp = async () => {
+        if (userResponse.trim() === '') {
+            setError("Time's up! Submitting default response.");
+            setUserResponse("I don't know");
+        }
+        if (userResponsePromiseRef.current) {
+            await handleUserResponse(true);
+        }
+    };
+
+    const handleUserResponse = async (isTimeout = false) => {
+        try {
+            const responseToSubmit = isTimeout ? "I don't know" : userResponse.trim() || "I don't know";
+
+            await handleFetchWithRetry(
+                `${GAME_SERVER_URL}/submit-answer/contestant3`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ answer: responseToSubmit })
+                }
+            );
+
+            clearInterval(timerRef.current);
+            setGameState(prev => ({
+                ...prev,
+                waitingForUserResponse: false,
+                stage: 'rating'
+            }));
+
+            // Get AI responses and ratings
+            await processRoundResponses(responseToSubmit);
+
+            setUserResponse('');
+
+            if (userResponsePromiseRef.current) {
+                userResponsePromiseRef.current.resolve();
+                userResponsePromiseRef.current = null;
+            }
+        } catch (error) {
+            console.error('Error submitting response:', error);
+            setError('Failed to submit response - please try again');
+            if (userResponsePromiseRef.current) {
+                userResponsePromiseRef.current.reject(error);
+                userResponsePromiseRef.current = null;
+            }
+        }
+    };
+
+    const processRoundResponses = async (userResponseText) => {
+        try {
+            const aiAnswers = await handleFetchWithRetry(`${GAME_SERVER_URL}/get-ai-answers`);
+            const ratings = await handleFetchWithRetry(`${GAME_SERVER_URL}/rate-all-answers`);
+
+            setConversationHistory(prev => {
+                const currentRound = gameState.round;
+                const newHistory = [...prev];
+
+                // Add user response
+                newHistory.push({
+                    round: currentRound,
+                    contestant: 3,
+                    question: gameText,
+                    response: userResponseText,
+                    rating: ratings.contestant3
+                });
+
+                // Add AI responses
+                Object.entries(aiAnswers).forEach(([contestant, answer]) => {
+                    newHistory.push({
+                        round: currentRound,
+                        contestant: parseInt(contestant.slice(-1)),
+                        question: gameText,
+                        response: answer,
+                        rating: ratings[contestant]
+                    });
+                });
+
+                return newHistory;
+            });
+        } catch (error) {
+            console.error('Error processing round responses:', error);
+            setError('Failed to process round responses');
+            throw error;
+        }
+    };
+
+    const waitForUserResponse = () => {
+        return new Promise((resolve, reject) => {
+            userResponsePromiseRef.current = { resolve, reject };
+        });
+    };
+
+    const runGameLoop = async () => {
+        try {
+            // Initialize game
+            await handleFetchWithRetry(`${GAME_SERVER_URL}/reset-game`);
+            setGameState(prev => ({
+                ...prev,
+                round: 1,
+                currentContestant: 1,
+                isGameStarted: true,
+                isGameEnded: false,
+                stage: 'host_intro',
+                winner: null
+            }));
+            setConversationHistory([]);
+
+            // Game introduction
+            await fetchAndSpeak('/host-introduction');
+            await fetchAndSpeak('/ai-introduction');
+
+            // Generate questions
+            for (let i = 0; i < gameState.maxRounds; i++) {
+                await handleFetchWithRetry(`${GAME_SERVER_URL}/get-question`);
+            }
+
+            // Main game loop
+            for (let round = 1; round <= gameState.maxRounds; round++) {
+                setGameState(prev => ({
+                    ...prev,
+                    round,
+                    stage: 'round_start'
+                }));
+
+                // Get and present question
+                const questionData = await handleFetchWithRetry(`${GAME_SERVER_URL}/next-question`);
+                setGameText(questionData.text);
+                await textToSpeech(questionData.text, 'contestant');
+
+                // Handle user's turn
+                setGameState(prev => ({
+                    ...prev,
+                    waitingForUserResponse: true,
+                    stage: 'answer_submission'
+                }));
+
+                startResponseTimer();
+                await waitForUserResponse();
+
+                // Move to next round
+                const nextRoundData = await handleFetchWithRetry(`${GAME_SERVER_URL}/next-round`);
+
+                // Only proceed to winner announcement after the last round
+                if (nextRoundData.game_complete) {
+                    // Handle winner announcement
+                    setGameState(prev => ({ ...prev, stage: 'winner_announcement' }));
+                    const winnerData = await fetchAndSpeak('/announce-winner');
+
+                    setGameState(prev => ({
+                        ...prev,
+                        isGameEnded: true,
+                        winner: winnerData.winner,
+                        stage: 'game_complete'
+                    }));
+                    break;
+                }
+            }
+        } catch (error) {
+            console.error('Error in game loop:', error);
+            setError(`Game error: ${error.message}`);
+            // Attempt to reset game state on error
+            await handleFetchWithRetry(`${GAME_SERVER_URL}/reset-game`).catch(console.error);
+        }
+    };
+
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => {
+            if (timerRef.current) clearInterval(timerRef.current);
+        };
+    }, []);
+
+    return (
+        <div className="p-8 max-w-4xl mx-auto">
+            <h1 className="text-3xl font-bold mb-6 text-purple-800">AI Dating Game Show</h1>
+
+            {/* Error Display */}
+            {error && (
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 flex justify-between items-center">
+                    <span>{error}</span>
+                    <button
+                        onClick={() => setError('')}
+                        className="text-red-700 hover:text-red-900"
+                    >
+                        ×
+                    </button>
                 </div>
-              )}
+            )}
+
+            {/* Game Status Panel */}
+            <div className="mb-6 bg-gray-50 p-4 rounded-lg shadow">
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <div className="text-lg mb-2">Round: {gameState.round} / {gameState.maxRounds}</div>
+                        <div className="text-lg mb-2">Stage: {gameState.stage}</div>
+                    </div>
+                    <div>
+                        <div className="text-lg">
+                            Status: {
+                                gameState.isPlaying ? 'Speaking' :
+                                gameState.waitingForUserResponse ? 'Waiting for your response' :
+                                gameState.isGameEnded ? 'Game Complete' : 'Waiting'
+                            }
+                        </div>
+                    </div>
+                </div>
             </div>
-          ))}
+
+            {/* Game Controls */}
+            <div className="mb-6 space-x-4">
+                <button
+                    onClick={runGameLoop}
+                    disabled={gameState.isPlaying || gameState.isGameStarted}
+                    className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg text-lg font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                >
+                    Start Game
+                </button>
+
+                <button
+                    onClick={async () => {
+                        await handleFetchWithRetry(`${GAME_SERVER_URL}/reset-game`);
+                        setGameState(prev => ({
+                            ...prev,
+                            round: 1,
+                            isGameStarted: false,
+                            isGameEnded: false,
+                            waitingForUserResponse: false,
+                            winner: null,
+                            stage: 'initial'
+                        }));
+                        setConversationHistory([]);
+                        setError('');
+                    }}
+                    disabled={gameState.isPlaying || !gameState.isGameStarted}
+                    className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-lg text-lg font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                >
+                    Reset Game
+                </button>
+            </div>
+
+            {/* User Response Section */}
+            {gameState.waitingForUserResponse && (
+                <div className="mb-6 bg-white shadow-lg rounded-lg p-6">
+                    <div className="text-xl font-semibold mb-2 text-purple-700">
+                        Your Turn! Time remaining: {timeRemaining}s
+                    </div>
+                    <form
+                        onSubmit={async (e) => {
+                            e.preventDefault();
+                            await handleUserResponse(false);
+                        }}
+                        className="space-y-4"
+                    >
+                        <textarea
+                            value={userResponse}
+                            onChange={(e) => setUserResponse(e.target.value)}
+                            className="w-full p-4 border rounded-lg mb-4 h-32 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                            placeholder="Type your response here..."
+                        />
+                        <button
+                            type="submit"
+                            disabled={userResponse.trim() === ''}
+                            className="bg-purple-500 hover:bg-purple-600 text-white px-6 py-3 rounded-lg text-lg font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                        >
+                            Submit Response
+                        </button>
+                    </form>
+                </div>
+            )}
+
+            {/* Current Game Text Display */}
+            {gameText && (
+                <div className="bg-gray-100 p-6 rounded-lg mb-6 shadow">
+                    <h2 className="font-bold mb-2 text-purple-800">Current Text:</h2>
+                    <p className="text-lg">{gameText}</p>
+                </div>
+            )}
+
+            {/* Winner Announcement */}
+            {gameState.winner && (
+                <div className="mb-6 bg-green-100 p-6 rounded-lg shadow-lg">
+                    <h2 className="text-2xl font-bold text-green-800 mb-2">
+                        Winner Announcement!
+                    </h2>
+                    <p className="text-lg text-green-700">
+                        {gameState.winner === 'contestant3' ? 'Congratulations! You won!' :
+                            `AI Contestant ${gameState.winner.slice(-1)} won!`}
+                    </p>
+                    {gameState.stage === 'game_complete' && (
+                        <button
+                            onClick={() => window.location.reload()}
+                            className="mt-4 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-colors"
+                        >
+                            Play Again
+                        </button>
+                    )}
+                </div>
+            )}
+
+            {/* Conversation History */}
+            {conversationHistory.length > 0 && (
+                <div className="bg-white shadow-lg rounded-lg p-6 mb-8">
+                    <h2 className="text-2xl font-bold mb-6 text-purple-800">Conversation History</h2>
+
+                    {/* Group conversations by round */}
+                    {[...Array(gameState.maxRounds)].map((_, roundIndex) => {
+                        const roundNumber = roundIndex + 1;
+                        const roundConversations = conversationHistory.filter(
+                            conv => conv.round === roundNumber
+                        );
+
+                        if (roundConversations.length === 0) return null;
+
+                        return (
+                            <div key={roundNumber} className="mb-8 last:mb-0">
+                                <h3 className="text-xl font-semibold mb-4 text-purple-700">
+                                    Round {roundNumber}
+                                </h3>
+
+                                <div className="space-y-4">
+                                    {roundConversations.map((conv, index) => (
+                                        <div
+                                            key={`${roundNumber}-${index}`}
+                                            className="p-4 border rounded-lg hover:shadow-md transition-shadow"
+                                        >
+                                            <div className="flex justify-between items-center mb-2">
+                                                <span className="font-semibold text-purple-600">
+                                                    {conv.contestant === 3 ? 'You' : `AI Contestant ${conv.contestant}`}
+                                                </span>
+                                                {conv.rating !== undefined && (
+                                                    <span className="text-green-600 font-medium">
+                                                        Rating: {conv.rating.toFixed(1)}/10
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            <div className="mb-2">
+                                                <span className="text-gray-600 font-medium">Question:</span>
+                                                <p className="ml-4 text-gray-800">{conv.question}</p>
+                                            </div>
+
+                                            <div>
+                                                <span className="text-gray-600 font-medium">Response:</span>
+                                                <p className="ml-4 text-gray-800">{conv.response}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
         </div>
-      )}
-    </div>
-  );
+    );
 }
 
 export default App;
