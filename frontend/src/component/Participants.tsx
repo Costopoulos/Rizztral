@@ -1,15 +1,25 @@
 import './Participants.css';
+import { participantData } from './participantData';
 
-// Define type for the props 
 interface ParticipantProps {
   imgSrc: string;
   name: string;
   heart: string;
+  isTarget?: boolean;
+  isHost?: boolean;
+  isSpeaking?: boolean;
 }
 
-function Participant({ imgSrc, name, heart }: ParticipantProps) {
+function Participant({ imgSrc, name, heart, isTarget, isHost, isSpeaking }: ParticipantProps) {
+  const classNames = [
+    'participant',
+    isTarget ? 'target-participant' : '',
+    isHost ? 'host-participant' : '',
+    isSpeaking ? 'speaking-participant' : '',
+  ].filter(Boolean).join(' ');
+
   return (
-    <div className="participant">
+    <div className={classNames}>
       <div className="participant-img">
         <img src={imgSrc} alt={`${name}'s avatar`} />
       </div>
@@ -19,29 +29,42 @@ function Participant({ imgSrc, name, heart }: ParticipantProps) {
   );
 }
 
-const Participants = () => {
-  const participants = [
-    { imgSrc: '/img/target.jpeg', name: 'Participant 1', heart: '❤️❤️❤️❤️' },
-    { imgSrc: '/img/target.jpeg', name: 'Participant 2', heart: '❤️❤️❤️❤️' },
-    { imgSrc: '/img/target.jpeg', name: 'Participant 3', heart: '❤️❤️❤️❤️' },
-  ];
+const Participants = ({ currentSpeaker }: { currentSpeaker: number }) => {
+  const { host: hostParticipant, target: targetParticipant, participants } = participantData;
 
   return (
     <div className="participants-container">
-        <div className="rizzler">Rizztral 2.0</div>
-        <div className='container2'>
-            {participants.map((participant, index) => (
-                <Participant
-                key={index}
-                imgSrc={participant.imgSrc}
-                name={participant.name}
-                heart={participant.heart}
-                />
-            ))}
+      <div className='participants-layout'>
+        <div className="top-row">
+          <div className="target-container">
+            <Participant
+              {...targetParticipant}
+              isTarget={true}
+              isSpeaking={currentSpeaker === 0}
+            />
+          </div>
+          <div className="host-container">
+            <Participant
+              {...hostParticipant}
+              isHost={true}
+              isSpeaking={currentSpeaker === -1}
+            />
+          </div>
         </div>
+        <div className='bottom-row'>
+          {participants.map((participant, index) => (
+            <Participant
+              key={index}
+              imgSrc={participant.imgSrc}
+              name={participant.name}
+              heart={participant.heart}
+              isSpeaking={currentSpeaker === index + 1}
+            />
+          ))}
+        </div>
+      </div>
     </div>
   );
 };
 
 export default Participants;
-
