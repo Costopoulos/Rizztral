@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {io} from 'socket.io-client';
 
 const socket = io('http://localhost:3000');
@@ -18,21 +18,16 @@ function App() {
     currentContestant: 1,
     isPlaying: false,
     isGameStarted: false,
-    isGameEnded: false
+    isGameEnded: false,
+    waitingForUserResponse: false
   });
   const [gameText, setGameText] = useState('');
   const [error, setError] = useState('');
   const [userList, setUserList] = useState([]);
   const [conversationHistory, setConversationHistory] = useState([]);
-
-  const dummyResponses = [
-    "I believe in taking life one day at a time and enjoying every moment. I love spontaneous adventures!",
-    "My ideal date would be cooking together at home, then watching the sunset from a rooftop.",
-    "I think communication is key in any relationship. I'm always honest about my feelings.",
-    "I love traveling and experiencing new cultures. Life's too short to stay in one place!",
-    "Family is everything to me. I hope to build a loving home filled with laughter.",
-    "I'm passionate about my career but know how to maintain work-life balance."
-  ];
+  const [userResponse, setUserResponse] = useState('');
+  const [timeRemaining, setTimeRemaining] = useState(20);
+  const timerRef = useRef(null);
 
   const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -96,6 +91,108 @@ function App() {
     }
   };
 
+  const startResponseTimer = () => {
+    setTimeRemaining(20);
+    if (timerRef.current) clearInterval(timerRef.current);
+
+    timerRef.current = setInterval(() => {
+      setTimeRemaining(prev => {
+        if (prev <= 1) {
+          clearInterval(timerRef.current);
+          handleTimeUp();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const handleTimeUp = async () => {
+    if (userResponse.trim() === '') {
+      setError("Time's up! No response submitted.");
+    }
+    await submitUserResponse();
+  };
+
+  const submitUserResponse = async () => {
+    try {
+      const response = await fetch(`${GAME_SERVER_URL}/submit-answer/contestant${gameState.currentContestant}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          response: userResponse
+        })
+      });
+
+      if (!response.ok) throw new Error('Failed to submit response');
+
+      clearInterval(timerRef.current);
+      setGameState(prev => ({ ...prev, waitingForUserResponse: false }));
+      setUserResponse('');
+
+      // Continue with rating
+      const ratingResponse = await fetch(`${GAME_SERVER_URL}/rate-contestant/contestant${gameState.currentContestant}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          conversation: userResponse
+        })
+      });
+      const ratingData = await ratingResponse.json();
+
+      setConversationHistory(prev => {
+        const newHistory = [...prev];
+        newHistory[newHistory.length - 1].response = userResponse;
+        newHistory[newHistory.length - 1].rating = ratingData.rating;
+        return newHistory;
+      });
+
+    } catch (error) {
+      console.error('Error submitting response:', error);
+      setError('Failed to submit response');
+    }
+  };
+
+  const getAIContestantResponse = async () => {
+    try {
+      const response = await fetch(`${GAME_SERVER_URL}/get-ai-response`);
+      const data = await response.json();
+
+      setConversationHistory(prev => [...prev, {
+        round: gameState.round,
+        contestant: gameState.currentContestant,
+        question: gameText,
+        response: data.response
+      }]);
+
+      // Rate the AI response
+      const ratingResponse = await fetch(`${GAME_SERVER_URL}/rate-contestant/contestant${gameState.currentContestant}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          conversation: data.response
+        })
+      });
+      const ratingData = await ratingResponse.json();
+
+      setConversationHistory(prev => {
+        const newHistory = [...prev];
+        newHistory[newHistory.length - 1].rating = ratingData.rating;
+        return newHistory;
+      });
+
+    } catch (error) {
+      console.error('Error getting AI response:', error);
+      setError('Failed to get AI contestant response');
+    }
+  };
+
   const runGameLoop = async () => {
     try {
       // Reset game state
@@ -120,36 +217,27 @@ function App() {
 
         // Loop through contestants
         for (let contestant = 1; contestant <= 2; contestant++) {
-          setGameState(prev => ({ ...prev, currentContestant: contestant }));
+          setGameState(prev => ({
+            ...prev,
+            currentContestant: contestant,
+            waitingForUserResponse: contestant === 1
+          }));
 
-          // Simulate conversation with dummy response
-          const dummyResponse = dummyResponses[Math.floor(Math.random() * dummyResponses.length)];
-          setConversationHistory(prev => [...prev, {
-            round,
-            contestant,
-            question: gameText,
-            response: dummyResponse
-          }]);
-
-          // Post the rating request
-          try {
-            const ratingResponse = await fetch(`${GAME_SERVER_URL}/rate-contestant/contestant${contestant}`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({
-                conversation: dummyResponse
-              })
+          if (contestant === 1) {
+            // Real user's turn
+            startResponseTimer();
+            // Wait for submitUserResponse to be called
+            await new Promise(resolve => {
+              const checkInterval = setInterval(() => {
+                if (!gameState.waitingForUserResponse) {
+                  clearInterval(checkInterval);
+                  resolve();
+                }
+              }, 100);
             });
-            const ratingData = await ratingResponse.json();
-            setConversationHistory(prev => {
-              const newHistory = [...prev];
-              newHistory[newHistory.length - 1].rating = ratingData.rating;
-              return newHistory;
-            });
-          } catch (error) {
-            console.error('Error rating contestant:', error);
+          } else {
+            // AI contestant's turn
+            await getAIContestantResponse();
           }
 
           await delay(2000); // 2-second pause
@@ -175,6 +263,12 @@ function App() {
       setError('Game loop failed');
     }
   };
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []);
 
   return (
     <div className="p-8 max-w-4xl mx-auto">
@@ -209,6 +303,30 @@ function App() {
           Reset Game
         </button>
       </div>
+
+      {gameState.waitingForUserResponse && (
+        <div className="mb-6">
+          <div className="text-xl font-semibold mb-2">Your Turn! Time remaining: {timeRemaining}s</div>
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            submitUserResponse();
+          }}>
+            <textarea
+              value={userResponse}
+              onChange={(e) => setUserResponse(e.target.value)}
+              className="w-full p-4 border rounded-lg mb-4 h-32"
+              placeholder="Type your response here..."
+            />
+            <button
+              type="submit"
+              className="bg-blue-500 text-white px-6 py-3 rounded-lg text-lg font-semibold"
+              disabled={userResponse.trim() === ''}
+            >
+              Submit Response
+            </button>
+          </form>
+        </div>
+      )}
 
       {gameText && (
         <div className="bg-gray-100 p-6 rounded-lg mb-6">
