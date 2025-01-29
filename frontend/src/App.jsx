@@ -12,7 +12,7 @@ const VOICE_IDS = {
     contestant: 'TC0Zp7WVFzhA8zpTlRqV'
 };
 
-const HOST_INTRODUCTION = "Welcome to Rizztral Multiplayer, where three contestants compete for the AI bachelorette's heart!";
+const HOST_INTRODUCTION = "Welcome";// to Rizztral Multiplayer, where three contestants compete for the AI bachelorette's heart!";
 
 function App() {
     const [username, setUsername] = useState('');
@@ -27,7 +27,9 @@ function App() {
         waitingForResponses: false,
         players: [],
         winner: null,
-        isPlaying: false
+        isPlaying: false,
+        questions: [],
+        aiIntroduction: ''
     });
 
     const [gameText, setGameText] = useState('');
@@ -88,6 +90,12 @@ function App() {
     };
 
     useEffect(() => {
+        if (gameState.stage === 'host_intro' && gameState.aiIntroduction) {
+            startGame();
+        }
+    }, [gameState.stage, gameState.aiIntroduction]);
+
+    useEffect(() => {
         socket.on('gameJoined', ({roomId, playerInfo}) => {
             setGameState(prev => ({
                 ...prev,
@@ -107,14 +115,15 @@ function App() {
         });
 
         socket.on('gameStart', async ({gameState: newGameState}) => {
-            setGameState(prev => ({
-                ...prev,
-                ...newGameState,
-                stage: 'host_intro'
-            }));
-            setGameText(HOST_INTRODUCTION);
-            await textToSpeech(HOST_INTRODUCTION, 'host');
-            await startGame();
+            setGameState(prev => {
+                const updatedState = {
+                    ...prev,
+                    ...newGameState,
+                    stage: 'host_intro'
+                };
+                return updatedState;
+            });
+            startGame();
         });
 
         socket.on('allAnswersSubmitted', ({answers}) => {
@@ -153,16 +162,15 @@ function App() {
 
     const startGame = async () => {
         try {
-            const questions = await generateQuestions();
-            questionsRef.current = questions;
+            setGameText(HOST_INTRODUCTION);
+            await textToSpeech(HOST_INTRODUCTION, 'host');
 
-            // Get AI bachelorette introduction
-            const response = await fetch(`${GAME_SERVER_URL}/ai-introduction`);
-            const data = await response.json();
-            setGameText(data.text);
-            await textToSpeech(data.text, 'contestant');
-
-            runGameLoop();
+            // Ensure we have the AI introduction
+            if (gameState.aiIntroduction) {
+                setGameText(gameState.aiIntroduction);
+                await textToSpeech(gameState.aiIntroduction, 'contestant');
+                runGameLoop();
+            }
         } catch (error) {
             setError('Failed to start game: ' + error.message);
         }
@@ -180,7 +188,7 @@ function App() {
 
     const processAnswers = async (answers) => {
         try {
-            const currentQuestion = questionsRef.current[gameState.round - 1];
+            const currentQuestion = gameState.questions[gameState.round - 1];
 
             // Get ratings for all answers
             const ratedAnswers = await Promise.all(answers.map(async ({player, answer}) => {
@@ -263,9 +271,9 @@ function App() {
 
     const runGameLoop = async () => {
         if (gameState.round <= gameState.maxRounds) {
-            const currentQuestion = questionsRef.current[gameState.round - 1];
+            const currentQuestion = gameState.questions[gameState.round - 1];
             setGameText(currentQuestion);
-            await textToSpeech(currentQuestion, 'host');
+            await textToSpeech(currentQuestion, 'contestant');
 
             setGameState(prev => ({
                 ...prev,
