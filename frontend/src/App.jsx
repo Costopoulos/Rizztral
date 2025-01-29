@@ -43,6 +43,7 @@ function App() {
     const [userResponse, setUserResponse] = useState('');
     const [timeRemaining, setTimeRemaining] = useState(20);
     const [conversationHistory, setConversationHistory] = useState([]);
+    const responseHandledRef = useRef(false);
     const timerRef = useRef(null);
     const userResponsePromiseRef = useRef(null);
     const questionsRef = useRef([]);
@@ -168,13 +169,18 @@ function App() {
     };
 
     const startResponseTimer = () => {
+        // Reset the response handled flag for new round
+        responseHandledRef.current = false;
+
         setTimeRemaining(20);
-        if (timerRef.current) clearInterval(timerRef.current);
+        if (timerRef.current) {
+            clearInterval(timerRef.current);
+            timerRef.current = null;
+        }
 
         timerRef.current = setInterval(() => {
             setTimeRemaining(prev => {
                 if (prev <= 1) {
-                    clearInterval(timerRef.current);
                     handleTimeUp();
                     return 0;
                 }
@@ -184,20 +190,53 @@ function App() {
     };
 
     const handleTimeUp = async () => {
+        if (responseHandledRef.current) return;
+
+        // Clear timer
+        if (timerRef.current) {
+            clearInterval(timerRef.current);
+            timerRef.current = null;
+        }
+
+        // Mark response as handled
+        responseHandledRef.current = true;
+
         if (userResponse.trim() === '') {
             setError("Time's up! Submitting default response.");
-            setUserResponse("I don't know");
         }
+
+        // Submit the response
+        const defaultResponse = "I don't know";
+        setUserResponse(defaultResponse);
+
         if (userResponsePromiseRef.current) {
-            await handleUserResponse(true);
+            setGameState(prev => ({
+                ...prev,
+                waitingForUserResponse: false,
+                stage: 'rating'
+            }));
+
+            await processRoundResponses(defaultResponse);
+            userResponsePromiseRef.current.resolve();
+            userResponsePromiseRef.current = null;
         }
     };
 
     const handleUserResponse = async (isTimeout = false) => {
+        if (responseHandledRef.current) return;
+
+        // Clear timer
+        if (timerRef.current) {
+            clearInterval(timerRef.current);
+            timerRef.current = null;
+        }
+
+        // Mark response as handled
+        responseHandledRef.current = true;
+
         try {
             const responseToSubmit = isTimeout ? "I don't know" : userResponse.trim() || "I don't know";
 
-            clearInterval(timerRef.current);
             setGameState(prev => ({
                 ...prev,
                 waitingForUserResponse: false,
@@ -206,12 +245,12 @@ function App() {
 
             await processRoundResponses(responseToSubmit);
 
-            setUserResponse('');
-
             if (userResponsePromiseRef.current) {
                 userResponsePromiseRef.current.resolve();
                 userResponsePromiseRef.current = null;
             }
+
+            setUserResponse('');
         } catch (error) {
             console.error('Error submitting response:', error);
             setError('Failed to submit response - please try again');
@@ -312,6 +351,8 @@ function App() {
 
     const waitForUserResponse = () => {
         return new Promise((resolve, reject) => {
+            // Reset response handled flag when waiting for new response
+            responseHandledRef.current = false;
             userResponsePromiseRef.current = { resolve, reject };
         });
     };
