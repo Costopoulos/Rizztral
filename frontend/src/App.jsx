@@ -46,6 +46,11 @@ function App() {
     const timerRef = useRef(null);
     const userResponsePromiseRef = useRef(null);
     const questionsRef = useRef([]);
+    const ratingsRef = useRef({
+        contestant1: [],
+        contestant2: [],
+        contestant3: []
+    });
 
     const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -146,11 +151,20 @@ function App() {
     };
 
     const calculateWinner = () => {
+        const ratings = ratingsRef.current;
+
         const avgRatings = {};
-        Object.entries(gameState.contestantRatings).forEach(([contestant, ratings]) => {
-            avgRatings[contestant] = ratings.reduce((a, b) => a + b, 0) / ratings.length;
+        Object.entries(ratings).forEach(([contestant, contestantRatings]) => {
+            const validRatings = contestantRatings.filter(rating => !isNaN(rating) && rating !== null);
+            if (validRatings.length > 0) {
+                avgRatings[contestant] = validRatings.reduce((a, b) => a + b, 0) / validRatings.length;
+            } else {
+                avgRatings[contestant] = 0;
+            }
         });
-        return Object.entries(avgRatings).reduce((a, b) => a[1] > b[1] ? a : b)[0];
+
+        return Object.entries(avgRatings)
+            .reduce((a, b) => a[1] > b[1] ? a : b)[0];
     };
 
     const startResponseTimer = () => {
@@ -213,7 +227,14 @@ function App() {
             const currentQuestion = questionsRef.current[gameState.round - 1];
             const aiAnswers = await handleFetchWithRetry(`${GAME_SERVER_URL}/get-ai-answers?question=${encodeURIComponent(currentQuestion)}`);
 
-            const ratings = {};
+            // Create an object to store all ratings
+            const roundRatings = {
+                contestant1: 0,
+                contestant2: 0,
+                contestant3: 0
+            };
+
+            // Rate AI contestants first
             for (const [contestant, answer] of Object.entries(aiAnswers)) {
                 const response = await handleFetchWithRetry(
                     `${GAME_SERVER_URL}/rate-answer`,
@@ -226,7 +247,7 @@ function App() {
                         })
                     }
                 );
-                ratings[contestant] = response.rating;
+                roundRatings[contestant] = response.rating;
             }
 
             // Rate user response
@@ -241,14 +262,20 @@ function App() {
                     })
                 }
             );
-            ratings.contestant3 = userRating.rating;
+            roundRatings.contestant3 = userRating.rating;
 
+            // Update both ref and state
+            Object.keys(roundRatings).forEach(contestant => {
+                ratingsRef.current[contestant].push(roundRatings[contestant]);
+            });
+
+            // Update gameState
             setGameState(prev => ({
                 ...prev,
                 contestantRatings: {
-                    contestant1: [...prev.contestantRatings.contestant1, ratings.contestant1],
-                    contestant2: [...prev.contestantRatings.contestant2, ratings.contestant2],
-                    contestant3: [...prev.contestantRatings.contestant3, ratings.contestant3]
+                    contestant1: [...ratingsRef.current.contestant1],
+                    contestant2: [...ratingsRef.current.contestant2],
+                    contestant3: [...ratingsRef.current.contestant3]
                 }
             }));
 
@@ -261,7 +288,7 @@ function App() {
                     contestant: 3,
                     question: currentQuestion,
                     response: userResponseText,
-                    rating: ratings.contestant3
+                    rating: roundRatings.contestant3
                 });
 
                 Object.entries(aiAnswers).forEach(([contestant, answer]) => {
@@ -270,7 +297,7 @@ function App() {
                         contestant: parseInt(contestant.slice(-1)),
                         question: currentQuestion,
                         response: answer,
-                        rating: ratings[contestant]
+                        rating: roundRatings[contestant]
                     });
                 });
 
@@ -424,6 +451,11 @@ function App() {
 
                 <button
                     onClick={() => {
+                        ratingsRef.current = {
+                            contestant1: [],
+                            contestant2: [],
+                            contestant3: []
+                        };
                         setGameState({
                             round: 1,
                             currentContestant: 1,
