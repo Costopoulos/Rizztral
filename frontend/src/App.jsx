@@ -11,7 +11,7 @@ const VOICE_IDS = {
     contestant: 'TC0Zp7WVFzhA8zpTlRqV'
 };
 
-const HOST_INTRODUCTION = "Welcome";// to Rizztral, the hottest dating show where an AI bachelorette will choose between three amazing contestants!";
+const HOST_INTRODUCTION = "Welcome to Rizztral, the hottest dating show where an AI bachelorette will choose between three amazing contestants!";
 
 const WINNER_ANNOUNCEMENTS = {
     contestant1: "And the winner is our adventurous bachelor - Contestant 1! What a thrilling journey it has been!",
@@ -41,7 +41,7 @@ function App() {
     const [gameText, setGameText] = useState('');
     const [error, setError] = useState('');
     const [userResponse, setUserResponse] = useState('');
-    const [timeRemaining, setTimeRemaining] = useState(20);
+    const [timeRemaining, setTimeRemaining] = useState(30);
     const [conversationHistory, setConversationHistory] = useState([]);
     const responseHandledRef = useRef(false);
     const timerRef = useRef(null);
@@ -172,7 +172,7 @@ function App() {
         // Reset the response handled flag for new round
         responseHandledRef.current = false;
 
-        setTimeRemaining(20);
+        setTimeRemaining(30);
         if (timerRef.current) {
             clearInterval(timerRef.current);
             timerRef.current = null;
@@ -383,8 +383,6 @@ function App() {
             advanceStage();
 
             const aiIntroResponse = await handleFetchWithRetry(`${GAME_SERVER_URL}/ai-introduction`);
-            // trim the text to contain only the first word
-            aiIntroResponse.text = aiIntroResponse.text.split(' ')[0];
             setGameText(aiIntroResponse.text);
             await textToSpeech(aiIntroResponse.text);
             advanceStage();
@@ -396,7 +394,7 @@ function App() {
                     stage: 'round_start'
                 }));
 
-                const currentQuestion = questionsRef.current[round - 1].split(' ')[0]; // trim the text to contain only the first word
+                const currentQuestion = questionsRef.current[round - 1].split(' ')[0];
                 setGameText(currentQuestion);
                 await textToSpeech(currentQuestion, 'contestant');
 
