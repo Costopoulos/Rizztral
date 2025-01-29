@@ -355,7 +355,7 @@ function App() {
                     stage: 'round_start'
                 }));
 
-                const currentQuestion = questionsRef.current[round - 1];
+                const currentQuestion = questionsRef.current[round - 1].split(' ')[0]; // trim the text to contain only the first word
                 setGameText(currentQuestion);
                 await textToSpeech(currentQuestion, 'contestant');
 
