@@ -3,8 +3,6 @@ import {io} from 'socket.io-client';
 import Participants from './component/Participants.tsx';
 import YourRank from './component/YourRank.tsx';
 import Leaderboard from './component/Leaderboard.jsx'
-import Target from './component/Target.tsx';
-import Textbox from './component/Textbox.tsx';
 
 const socket = io('http://localhost:3000');
 
@@ -18,6 +16,10 @@ const VOICE_IDS = {
 };
 
 function App() {
+  // Add view state
+  const [currentView, setCurrentView] = useState('game'); // 'game' or 'leaderboard'
+  
+  // Your existing state
   const [gameState, setGameState] = useState({
     round: 1,
     currentContestant: 1,
@@ -181,15 +183,38 @@ function App() {
     }
   };
 
-  return (
-    <div className="p-8 max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6">AI Dating Game Show</h1>
-      
-        {/* Add Leaderboard here, before the top-container */}
-        <div className="mb-6">
-          <Leaderboard />
-        </div>
+  // Component for the navigation header
+  const NavigationHeader = () => (
+    <div className="flex justify-between items-center mb-6 bg-gray-100 p-4 rounded-lg">
+      <h1 className="text-3xl font-bold">AI Dating Game Show</h1>
+      <div className="space-x-4">
+        <button
+          onClick={() => setCurrentView('game')}
+          className={`px-4 py-2 rounded ${
+            currentView === 'game'
+              ? 'bg-blue-500 text-white'
+              : 'bg-gray-200 hover:bg-gray-300'
+          }`}
+        >
+          Game
+        </button>
+        <button
+          onClick={() => setCurrentView('leaderboard')}
+          className={`px-4 py-2 rounded ${
+            currentView === 'leaderboard'
+              ? 'bg-blue-500 text-white'
+              : 'bg-gray-200 hover:bg-gray-300'
+          }`}
+        >
+          Leaderboard
+        </button>
+      </div>
+    </div>
+  );
 
+  // Component for the game view
+  const GameView = () => (
+    <>
       <div className="top-container">
         <Participants />
         <YourRank name='lol' />
@@ -254,6 +279,18 @@ function App() {
             </div>
           ))}
         </div>
+      )}
+    </>
+  );
+
+  return (
+    <div className="p-8 max-w-4xl mx-auto">
+      <NavigationHeader />
+      
+      {currentView === 'game' ? (
+        <GameView />
+      ) : (
+        <Leaderboard />
       )}
     </div>
   );
