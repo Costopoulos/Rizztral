@@ -6,10 +6,17 @@ const socket = io('http://localhost:3000');
 const REACT_APP_ELEVENLABS_API_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY;
 const GAME_SERVER_URL = 'http://localhost:8000';
 
-// Voice IDs for different roles
 const VOICE_IDS = {
     host: 'Ybqj6CIlqb6M85s9Bl4n',
     contestant: 'TC0Zp7WVFzhA8zpTlRqV'
+};
+
+const HOST_INTRODUCTION = "Welcome to Rizztral, the hottest dating show where an AI bachelorette will choose between three amazing contestants!";
+
+const WINNER_ANNOUNCEMENTS = {
+    contestant1: "And the winner is our adventurous bachelor - Contestant 1! What a thrilling journey it has been!",
+    contestant2: "Our poetic soul, Contestant 2, has won the heart of our bachelorette!",
+    contestant3: "Congratulations to our charming contestant - YOU have won the game!"
 };
 
 function App() {
@@ -22,19 +29,32 @@ function App() {
         waitingForUserResponse: false,
         maxRounds: 3,
         stage: 'initial',
-        winner: null
+        winner: null,
+        questions: [],
+        contestantRatings: {
+            contestant1: [],
+            contestant2: [],
+            contestant3: []
+        }
     });
+
     const [gameText, setGameText] = useState('');
     const [error, setError] = useState('');
     const [userResponse, setUserResponse] = useState('');
-    const [timeRemaining, setTimeRemaining] = useState(20);
+    const [timeRemaining, setTimeRemaining] = useState(30);
     const [conversationHistory, setConversationHistory] = useState([]);
+    const responseHandledRef = useRef(false);
     const timerRef = useRef(null);
     const userResponsePromiseRef = useRef(null);
+    const questionsRef = useRef([]);
+    const ratingsRef = useRef({
+        contestant1: [],
+        contestant2: [],
+        contestant3: []
+    });
 
     const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-    // Enhanced error handling with retry logic
     const handleFetchWithRetry = async (url, options = {}, retries = 3) => {
         let lastError;
         for (let i = 0; i < retries; i++) {
@@ -52,6 +72,29 @@ function App() {
             }
         }
         throw lastError;
+    };
+
+    const advanceStage = () => {
+        const stages = [
+            'initial',
+            'host_intro',
+            'ai_intro',
+            'question_submission',
+            'round_start',
+            'answer_submission',
+            'rating',
+            'next_round',
+            'winner_announcement',
+            'game_complete'
+        ];
+
+        setGameState(prev => {
+            const currentIndex = stages.indexOf(prev.stage);
+            if (currentIndex < stages.length - 1) {
+                return { ...prev, stage: stages[currentIndex + 1] };
+            }
+            return prev;
+        });
     };
 
     const textToSpeech = async (text, role = 'contestant') => {
@@ -99,30 +142,45 @@ function App() {
         }
     };
 
-    const fetchAndSpeak = async (endpoint) => {
-        try {
-            const data = await handleFetchWithRetry(`${GAME_SERVER_URL}${endpoint}`);
-            setGameText(data.text);
-
-            const isHostVoice = endpoint.includes('host-') || endpoint.includes('announce-winner');
-            await textToSpeech(data.text, isHostVoice ? 'host' : 'contestant');
-
-            return data;
-        } catch (error) {
-            console.error(`Error in fetchAndSpeak for ${endpoint}:`, error);
-            setError(`Failed to fetch and speak from ${endpoint}`);
-            throw error;
+    const generateQuestions = async () => {
+        const questions = [];
+        for (let i = 0; i < gameState.maxRounds; i++) {
+            const response = await handleFetchWithRetry(`${GAME_SERVER_URL}/get-question`);
+            questions.push(response.question);
         }
+        return questions;
+    };
+
+    const calculateWinner = () => {
+        const ratings = ratingsRef.current;
+
+        const avgRatings = {};
+        Object.entries(ratings).forEach(([contestant, contestantRatings]) => {
+            const validRatings = contestantRatings.filter(rating => !isNaN(rating) && rating !== null);
+            if (validRatings.length > 0) {
+                avgRatings[contestant] = validRatings.reduce((a, b) => a + b, 0) / validRatings.length;
+            } else {
+                avgRatings[contestant] = 0;
+            }
+        });
+
+        return Object.entries(avgRatings)
+            .reduce((a, b) => a[1] > b[1] ? a : b)[0];
     };
 
     const startResponseTimer = () => {
-        setTimeRemaining(20);
-        if (timerRef.current) clearInterval(timerRef.current);
+        // Reset the response handled flag for new round
+        responseHandledRef.current = false;
+
+        setTimeRemaining(30);
+        if (timerRef.current) {
+            clearInterval(timerRef.current);
+            timerRef.current = null;
+        }
 
         timerRef.current = setInterval(() => {
             setTimeRemaining(prev => {
                 if (prev <= 1) {
-                    clearInterval(timerRef.current);
                     handleTimeUp();
                     return 0;
                 }
@@ -132,44 +190,67 @@ function App() {
     };
 
     const handleTimeUp = async () => {
+        if (responseHandledRef.current) return;
+
+        // Clear timer
+        if (timerRef.current) {
+            clearInterval(timerRef.current);
+            timerRef.current = null;
+        }
+
+        // Mark response as handled
+        responseHandledRef.current = true;
+
         if (userResponse.trim() === '') {
             setError("Time's up! Submitting default response.");
-            setUserResponse("I don't know");
         }
+
+        // Submit the response
+        const defaultResponse = "I don't know";
+        setUserResponse(defaultResponse);
+
         if (userResponsePromiseRef.current) {
-            await handleUserResponse(true);
-        }
-    };
-
-    const handleUserResponse = async (isTimeout = false) => {
-        try {
-            const responseToSubmit = isTimeout ? "I don't know" : userResponse.trim() || "I don't know";
-
-            await handleFetchWithRetry(
-                `${GAME_SERVER_URL}/submit-answer/contestant3`,
-                {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ answer: responseToSubmit })
-                }
-            );
-
-            clearInterval(timerRef.current);
             setGameState(prev => ({
                 ...prev,
                 waitingForUserResponse: false,
                 stage: 'rating'
             }));
 
-            // Get AI responses and ratings
-            await processRoundResponses(responseToSubmit);
+            await processRoundResponses(defaultResponse);
+            userResponsePromiseRef.current.resolve();
+            userResponsePromiseRef.current = null;
+        }
+    };
 
-            setUserResponse('');
+    const handleUserResponse = async (isTimeout = false) => {
+        if (responseHandledRef.current) return;
+
+        // Clear timer
+        if (timerRef.current) {
+            clearInterval(timerRef.current);
+            timerRef.current = null;
+        }
+
+        // Mark response as handled
+        responseHandledRef.current = true;
+
+        try {
+            const responseToSubmit = isTimeout ? "I don't know" : userResponse.trim() || "I don't know";
+
+            setGameState(prev => ({
+                ...prev,
+                waitingForUserResponse: false,
+                stage: 'rating'
+            }));
+
+            await processRoundResponses(responseToSubmit);
 
             if (userResponsePromiseRef.current) {
                 userResponsePromiseRef.current.resolve();
                 userResponsePromiseRef.current = null;
             }
+
+            setUserResponse('');
         } catch (error) {
             console.error('Error submitting response:', error);
             setError('Failed to submit response - please try again');
@@ -182,30 +263,80 @@ function App() {
 
     const processRoundResponses = async (userResponseText) => {
         try {
-            const aiAnswers = await handleFetchWithRetry(`${GAME_SERVER_URL}/get-ai-answers`);
-            const ratings = await handleFetchWithRetry(`${GAME_SERVER_URL}/rate-all-answers`);
+            const currentQuestion = questionsRef.current[gameState.round - 1];
+            const aiAnswers = await handleFetchWithRetry(`${GAME_SERVER_URL}/get-ai-answers?question=${encodeURIComponent(currentQuestion)}`);
+
+            // Create an object to store all ratings
+            const roundRatings = {
+                contestant1: 0,
+                contestant2: 0,
+                contestant3: 0
+            };
+
+            // Rate AI contestants first
+            for (const [contestant, answer] of Object.entries(aiAnswers)) {
+                const response = await handleFetchWithRetry(
+                    `${GAME_SERVER_URL}/rate-answer`,
+                    {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            conversation: `Question: ${currentQuestion}\nAnswer: ${answer}`,
+                            round_number: gameState.round
+                        })
+                    }
+                );
+                roundRatings[contestant] = response.rating;
+            }
+
+            // Rate user response
+            const userRating = await handleFetchWithRetry(
+                `${GAME_SERVER_URL}/rate-answer`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        conversation: `Question: ${currentQuestion}\nAnswer: ${userResponseText}`,
+                        round_number: gameState.round
+                    })
+                }
+            );
+            roundRatings.contestant3 = userRating.rating;
+
+            // Update both ref and state
+            Object.keys(roundRatings).forEach(contestant => {
+                ratingsRef.current[contestant].push(roundRatings[contestant]);
+            });
+
+            // Update gameState
+            setGameState(prev => ({
+                ...prev,
+                contestantRatings: {
+                    contestant1: [...ratingsRef.current.contestant1],
+                    contestant2: [...ratingsRef.current.contestant2],
+                    contestant3: [...ratingsRef.current.contestant3]
+                }
+            }));
 
             setConversationHistory(prev => {
                 const currentRound = gameState.round;
                 const newHistory = [...prev];
 
-                // Add user response
                 newHistory.push({
                     round: currentRound,
                     contestant: 3,
-                    question: gameText,
+                    question: currentQuestion,
                     response: userResponseText,
-                    rating: ratings.contestant3
+                    rating: roundRatings.contestant3
                 });
 
-                // Add AI responses
                 Object.entries(aiAnswers).forEach(([contestant, answer]) => {
                     newHistory.push({
                         round: currentRound,
                         contestant: parseInt(contestant.slice(-1)),
-                        question: gameText,
+                        question: currentQuestion,
                         response: answer,
-                        rating: ratings[contestant]
+                        rating: roundRatings[contestant]
                     });
                 });
 
@@ -220,14 +351,17 @@ function App() {
 
     const waitForUserResponse = () => {
         return new Promise((resolve, reject) => {
+            // Reset response handled flag when waiting for new response
+            responseHandledRef.current = false;
             userResponsePromiseRef.current = { resolve, reject };
         });
     };
 
     const runGameLoop = async () => {
         try {
-            // Initialize game
-            await handleFetchWithRetry(`${GAME_SERVER_URL}/reset-game`);
+            const questions = await generateQuestions();
+            questionsRef.current = questions;
+
             setGameState(prev => ({
                 ...prev,
                 round: 1,
@@ -235,20 +369,24 @@ function App() {
                 isGameStarted: true,
                 isGameEnded: false,
                 stage: 'host_intro',
-                winner: null
+                winner: null,
+                questions,
+                contestantRatings: {
+                    contestant1: [],
+                    contestant2: [],
+                    contestant3: []
+                }
             }));
-            setConversationHistory([]);
 
-            // Game introduction
-            await fetchAndSpeak('/host-introduction');
-            await fetchAndSpeak('/ai-introduction');
+            setGameText(HOST_INTRODUCTION);
+            await textToSpeech(HOST_INTRODUCTION, 'host');
+            advanceStage();
 
-            // Generate questions
-            for (let i = 0; i < gameState.maxRounds; i++) {
-                await handleFetchWithRetry(`${GAME_SERVER_URL}/get-question`);
-            }
+            const aiIntroResponse = await handleFetchWithRetry(`${GAME_SERVER_URL}/ai-introduction`);
+            setGameText(aiIntroResponse.text);
+            await textToSpeech(aiIntroResponse.text);
+            advanceStage();
 
-            // Main game loop
             for (let round = 1; round <= gameState.maxRounds; round++) {
                 setGameState(prev => ({
                     ...prev,
@@ -256,12 +394,10 @@ function App() {
                     stage: 'round_start'
                 }));
 
-                // Get and present question
-                const questionData = await handleFetchWithRetry(`${GAME_SERVER_URL}/next-question`);
-                setGameText(questionData.text);
-                await textToSpeech(questionData.text, 'contestant');
+                const currentQuestion = questionsRef.current[round - 1].split(' ')[0];
+                setGameText(currentQuestion);
+                await textToSpeech(currentQuestion, 'contestant');
 
-                // Handle user's turn
                 setGameState(prev => ({
                     ...prev,
                     waitingForUserResponse: true,
@@ -271,33 +407,38 @@ function App() {
                 startResponseTimer();
                 await waitForUserResponse();
 
-                // Move to next round
-                const nextRoundData = await handleFetchWithRetry(`${GAME_SERVER_URL}/next-round`);
-
-                // Only proceed to winner announcement after the last round
-                if (nextRoundData.game_complete) {
-                    // Handle winner announcement
-                    setGameState(prev => ({ ...prev, stage: 'winner_announcement' }));
-                    const winnerData = await fetchAndSpeak('/announce-winner');
+                if (round === gameState.maxRounds) {
+                    const winner = calculateWinner();
+                    const winnerAnnouncement = WINNER_ANNOUNCEMENTS[winner];
 
                     setGameState(prev => ({
                         ...prev,
-                        isGameEnded: true,
-                        winner: winnerData.winner,
-                        stage: 'game_complete'
+                        stage: 'winner_announcement',
+                        winner,
+                        isGameEnded: true
                     }));
+
+                    setGameText(winnerAnnouncement);
+                    await textToSpeech(winnerAnnouncement, 'host');
                     break;
                 }
+
+                setGameState(prev => ({
+                    ...prev,
+                    stage: 'round_start'
+                }));
             }
         } catch (error) {
             console.error('Error in game loop:', error);
             setError(`Game error: ${error.message}`);
-            // Attempt to reset game state on error
-            await handleFetchWithRetry(`${GAME_SERVER_URL}/reset-game`).catch(console.error);
+            setGameState(prev => ({
+                ...prev,
+                isGameStarted: false,
+                isGameEnded: false
+            }));
         }
     };
 
-    // Cleanup on unmount
     useEffect(() => {
         return () => {
             if (timerRef.current) clearInterval(timerRef.current);
@@ -308,7 +449,6 @@ function App() {
         <div className="p-8 max-w-4xl mx-auto">
             <h1 className="text-3xl font-bold mb-6 text-purple-800">AI Dating Game Show</h1>
 
-            {/* Error Display */}
             {error && (
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 flex justify-between items-center">
                     <span>{error}</span>
@@ -321,7 +461,6 @@ function App() {
                 </div>
             )}
 
-            {/* Game Status Panel */}
             <div className="mb-6 bg-gray-50 p-4 rounded-lg shadow">
                 <div className="grid grid-cols-2 gap-4">
                     <div>
@@ -340,7 +479,6 @@ function App() {
                 </div>
             </div>
 
-            {/* Game Controls */}
             <div className="mb-6 space-x-4">
                 <button
                     onClick={runGameLoop}
@@ -351,17 +489,29 @@ function App() {
                 </button>
 
                 <button
-                    onClick={async () => {
-                        await handleFetchWithRetry(`${GAME_SERVER_URL}/reset-game`);
-                        setGameState(prev => ({
-                            ...prev,
+                    onClick={() => {
+                        ratingsRef.current = {
+                            contestant1: [],
+                            contestant2: [],
+                            contestant3: []
+                        };
+                        setGameState({
                             round: 1,
+                            currentContestant: 1,
+                            isPlaying: false,
                             isGameStarted: false,
                             isGameEnded: false,
                             waitingForUserResponse: false,
+                            maxRounds: 3,
+                            stage: 'initial',
                             winner: null,
-                            stage: 'initial'
-                        }));
+                            questions: [],
+                            contestantRatings: {
+                                contestant1: [],
+                                contestant2: [],
+                                contestant3: []
+                            }
+                        });
                         setConversationHistory([]);
                         setError('');
                     }}
@@ -372,7 +522,6 @@ function App() {
                 </button>
             </div>
 
-            {/* User Response Section */}
             {gameState.waitingForUserResponse && (
                 <div className="mb-6 bg-white shadow-lg rounded-lg p-6">
                     <div className="text-xl font-semibold mb-2 text-purple-700">
@@ -402,7 +551,6 @@ function App() {
                 </div>
             )}
 
-            {/* Current Game Text Display */}
             {gameText && (
                 <div className="bg-gray-100 p-6 rounded-lg mb-6 shadow">
                     <h2 className="font-bold mb-2 text-purple-800">Current Text:</h2>
@@ -410,7 +558,6 @@ function App() {
                 </div>
             )}
 
-            {/* Winner Announcement */}
             {gameState.winner && (
                 <div className="mb-6 bg-green-100 p-6 rounded-lg shadow-lg">
                     <h2 className="text-2xl font-bold text-green-800 mb-2">
@@ -431,12 +578,10 @@ function App() {
                 </div>
             )}
 
-            {/* Conversation History */}
             {conversationHistory.length > 0 && (
                 <div className="bg-white shadow-lg rounded-lg p-6 mb-8">
                     <h2 className="text-2xl font-bold mb-6 text-purple-800">Conversation History</h2>
 
-                    {/* Group conversations by round */}
                     {[...Array(gameState.maxRounds)].map((_, roundIndex) => {
                         const roundNumber = roundIndex + 1;
                         const roundConversations = conversationHistory.filter(
