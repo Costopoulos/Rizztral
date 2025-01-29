@@ -394,7 +394,7 @@ function App() {
                     stage: 'round_start'
                 }));
 
-                const currentQuestion = questionsRef.current[round - 1].split(' ')[0];
+                const currentQuestion = questionsRef.current[round - 1];
                 setGameText(currentQuestion);
                 await textToSpeech(currentQuestion, 'contestant');
 
