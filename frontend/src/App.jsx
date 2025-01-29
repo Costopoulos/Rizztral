@@ -2,6 +2,7 @@ import React, {useState, useEffect} from 'react';
 import {io} from 'socket.io-client';
 import Participants from './component/Participants.tsx';
 import YourRank from './component/YourRank.tsx';
+import Leaderboard from './component/Leaderboard.jsx'
 import Target from './component/Target.tsx';
 import Textbox from './component/Textbox.tsx';
 
@@ -183,6 +184,12 @@ function App() {
   return (
     <div className="p-8 max-w-4xl mx-auto">
       <h1 className="text-3xl font-bold mb-6">AI Dating Game Show</h1>
+      
+        {/* Add Leaderboard here, before the top-container */}
+        <div className="mb-6">
+          <Leaderboard />
+        </div>
+
       <div className="top-container">
         <Participants />
         <YourRank name='lol' />
