@@ -13,9 +13,10 @@ const VOICE_IDS = {
 
 const HOST_INTRODUCTION = "Welcome";// to Rizztral, the hottest dating show where an AI bachelorette will choose between three amazing contestants!";
 
-const AI_PERSONALITIES = {
-    contestant1: "Confident and ambitious, with a dry sense of humor and passion for adventure",
-    contestant2: "Submissive, pathetic lier, with a low self-esteem and a passion for being a doormat. Also enjoys giving back handed compliments. Loves licking feet"
+const WINNER_ANNOUNCEMENTS = {
+    contestant1: "And the winner is our adventurous bachelor - Contestant 1! What a thrilling journey it has been!",
+    contestant2: "Our poetic soul, Contestant 2, has won the heart of our bachelorette!",
+    contestant3: "Congratulations to our charming contestant - YOU have won the game!"
 };
 
 function App() {
@@ -342,14 +343,7 @@ function App() {
 
                 if (round === gameState.maxRounds) {
                     const winner = calculateWinner();
-                    const winnerResponse = await handleFetchWithRetry(
-                        `${GAME_SERVER_URL}/announce-winner`,
-                        {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ winner })
-                        }
-                    );
+                    const winnerAnnouncement = WINNER_ANNOUNCEMENTS[winner];
 
                     setGameState(prev => ({
                         ...prev,
@@ -358,8 +352,8 @@ function App() {
                         isGameEnded: true
                     }));
 
-                    setGameText(winnerResponse.text);
-                    await textToSpeech(winnerResponse.text, 'host');
+                    setGameText(winnerAnnouncement);
+                    await textToSpeech(winnerAnnouncement, 'host');
                     break;
                 }
 
