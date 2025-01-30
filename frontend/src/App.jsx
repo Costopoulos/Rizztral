@@ -98,6 +98,11 @@ function App() {
     };
 
     const textToSpeech = async (text, role = 'contestant') => {
+        // If no API key is set, skip TTS entirely
+        if (!REACT_APP_ELEVENLABS_API_KEY) {
+            return Promise.resolve();
+        }
+
         try {
             const voiceId = VOICE_IDS[role];
             const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
@@ -118,6 +123,12 @@ function App() {
             });
 
             if (!response.ok) {
+                // If we get a 429 (Too Many Requests) or 401 (Unauthorized), disable TTS for the session
+                if (response.status === 429 || response.status === 401) {
+                    console.warn('TTS quota exceeded or unauthorized - disabling TTS for this session');
+                    REACT_APP_ELEVENLABS_API_KEY = null;
+                    return Promise.resolve();
+                }
                 throw new Error('Failed to convert text to speech');
             }
 
@@ -133,12 +144,16 @@ function App() {
                     URL.revokeObjectURL(audioUrl);
                     resolve();
                 };
-                audio.play();
+                audio.play().catch(error => {
+                    console.warn('Audio playback failed:', error);
+                    setGameState(prev => ({...prev, isPlaying: false}));
+                    URL.revokeObjectURL(audioUrl);
+                    resolve();
+                });
             });
         } catch (error) {
-            console.error('Error in text-to-speech:', error);
-            setError('Audio playback failed - continuing with text only');
-            setGameState(prev => ({ ...prev, isPlaying: false }));
+            console.warn('TTS error - continuing without audio:', error);
+            return Promise.resolve();
         }
     };
 
@@ -450,7 +465,8 @@ function App() {
             <h1 className="text-3xl font-bold mb-6 text-purple-800">AI Dating Game Show</h1>
 
             {error && (
-                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 flex justify-between items-center">
+                <div
+                    className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 flex justify-between items-center">
                     <span>{error}</span>
                     <button
                         onClick={() => setError('')}
