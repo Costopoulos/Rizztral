@@ -138,7 +138,7 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('submitAnswer', ({roomId, answer}) => {
+    socket.on('submitAnswer', async ({roomId, answer}) => {
         const room = rooms.get(roomId);
         if (!room) return;
 
@@ -149,12 +149,29 @@ io.on('connection', (socket) => {
 
         // Check if all players have submitted
         if (room.gameState.responses.size === MAX_PLAYERS) {
-            io.to(roomId).emit('allAnswersSubmitted', {
-                answers: Array.from(room.gameState.responses.entries()).map(([playerId, answer]) => ({
-                    player: room.getPlayerInfo(playerId),
-                    answer
-                }))
-            });
+            const currentQuestion = room.gameState.questions[room.gameState.round - 1];
+
+            // Get ratings for all answers
+            const ratedAnswers = await Promise.all(
+                Array.from(room.gameState.responses.entries()).map(async ([playerId, answer]) => {
+                    const response = await fetch(`${process.env.GAME_SERVER_URL}/rate-answer`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            conversation: `Question: ${currentQuestion}\nAnswer: ${answer}`,
+                            round_number: room.gameState.round
+                        })
+                    });
+                    const data = await response.json();
+                    return {
+                        player: room.getPlayerInfo(playerId),
+                        answer,
+                        rating: data.rating
+                    };
+                })
+            );
+
+            io.to(roomId).emit('allAnswersSubmitted', {answers: ratedAnswers});
             room.gameState.responses.clear();
         }
     });

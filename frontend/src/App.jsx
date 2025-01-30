@@ -190,41 +190,13 @@ function App() {
         try {
             const currentQuestion = gameState.questions[gameState.round - 1];
 
-            // Get ratings for all answers
-            const ratedAnswers = await Promise.all(answers.map(async ({player, answer}) => {
-                try {
-                    const response = await fetch(`${GAME_SERVER_URL}/rate-answer`, {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({
-                            conversation: `Question: ${currentQuestion}\nAnswer: ${answer}`,
-                            round_number: gameState.round
-                        })
-                    });
-
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-
-                    const data = await response.json();
-                    if (typeof data.rating !== 'number') {
-                        throw new Error('Invalid rating received');
-                    }
-
-                    return {...player, answer, rating: data.rating};
-                } catch (error) {
-                    console.error(`Rating error for player ${player.username}:`, error);
-                    return {...player, answer, rating: 5}; // Fallback rating
-                }
-            }));
-
             // Update conversation history
             setConversationHistory(prev => [
                 ...prev,
-                ...ratedAnswers.map(({contestantNumber, username, answer, rating}) => ({
+                ...answers.map(({player, answer, rating}) => ({
                     round: gameState.round,
-                    contestant: contestantNumber,
-                    username,
+                    contestant: player.contestantNumber,
+                    username: player.username,
                     question: currentQuestion,
                     response: answer,
                     rating
@@ -252,7 +224,7 @@ function App() {
                     round: prev.round + 1,
                     stage: 'round_start'
                 }));
-                await delay(1000); // Brief pause between rounds
+                await delay(1000);
                 runGameLoop();
             }
         } catch (error) {
