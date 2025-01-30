@@ -10,7 +10,7 @@
 }
 
 .leaderboard-content {
-  width: 150%;
+  width: 180%;
   max-width: 2000px;
   display: flex;
   flex-direction: column;
@@ -27,11 +27,9 @@
 
 .leaderboard-header {
   width: 100%;
-  padding: 1.5rem;
   background: linear-gradient(to right, #4f46e5, #9333ea);
-  display: flex;
-  justify-content: space-between;
   align-items: center;
+  text-align: center;
 }
 
 /* Add specific table styles */
@@ -44,16 +42,18 @@
 /* Reduce the vertical padding in table cells */
 .leaderboard-table th,
 .leaderboard-table td {
-  padding: 0.5rem 1rem;  /* Reduced from 1rem to 0.5rem for top/bottom padding */
+  padding: 0.5rem 1rem; 
+  text-align: left;
 }
 
 .leaderboard-table th:nth-child(2),
 .leaderboard-table td:nth-child(2) {
-  padding-right: 8rem; /* Add significant spacing before the score column */
+  padding-right: 5rem; /* Add significant spacing before the score column */
+  text-align: left;
 }
 
 .leaderboard-table th:last-child,
 .leaderboard-table td:last-child {
-  text-align: right;
+  text-align: left;
   width: 150px; /* Fixed width for score column */
 }

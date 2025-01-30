@@ -76,44 +76,44 @@ const Leaderboard = () => {
           ) : (
             <div className="p-6">
             <table className="leaderboard-table w-full text-white">
-            <thead>
-              <tr className="border-b-2 border-gray-700">
-                <th className="text-center text-gray-400 font-medium w-32">Rank</th>
-                <th className="text-left text-gray-400 font-medium">Player</th>
-                <th className="text-gray-400 font-medium">Score</th>
-              </tr>
-            </thead>
-            <tbody>
-              {leaderboardData.map((entry, index) => (
-                <tr 
-                  key={entry.id}
-                  className={`border-b border-gray-800 transition-colors
-                    ${index < 3 ? 'bg-gray-800/50' : 'hover:bg-gray-800/30'}`}
-                >
-                  <td className="text-center">
-                    <span className="inline-flex items-center justify-center text-xl">
-                      {getMedal(index)}
-                    </span>
-                  </td>
-                  <td>
-                    <span className={`text-gray-100 ${index < 3 ? 'font-semibold' : ''}`}>
-                      {entry.playerName}
-                    </span>
-                  </td>
-                  <td>
-                    <span className={`inline-block px-3 py-1 rounded-full 
-                      ${index < 3 
-                        ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold' 
-                        : 'bg-gray-800 text-gray-300'}`}
-                    >
-                      {entry.score}
-                    </span>
-                  </td>
+              <thead>
+                <tr className="border-b-2 border-gray-700">
+                  <th className="text-left text-gray-400 font-medium w-32">Rank</th>
+                  <th className="text-left text-gray-400 font-medium">Player</th>
+                  <th className="text-right text-gray-400 font-medium">Score</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-            </div>
+              </thead>
+              <tbody>
+                {leaderboardData.map((entry, index) => (
+                  <tr 
+                    key={entry.id}
+                    className={`border-b border-gray-800 transition-colors
+                      ${index < 3 ? 'bg-gray-800/50' : 'hover:bg-gray-800/30'}`}
+                  >
+                    <td className="text-left w-32">
+                      <span className="inline-flex items-left justify-start text-xl">
+                        {getMedal(index)}
+                      </span>
+                    </td>
+                    <td className="text-left">
+                      <span className={`text-gray-100 ${index < 3 ? 'font-semibold' : ''}`}>
+                        {entry.playerName}
+                      </span>
+                    </td>
+                    <td className="text-right">
+                      <span className={`inline-block px-3 py-1 rounded-full 
+                        ${index < 3 
+                          ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold' 
+                          : 'bg-gray-800 text-gray-300'}`}
+                      >
+                        {entry.score}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           )}
         </div>
       </div>
