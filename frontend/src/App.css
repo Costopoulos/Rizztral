@@ -45,7 +45,7 @@
 body {
   color: #FBE7E7;
   font-family: "Inknut Antiqua";
-  background: linear-gradient(0deg, #000 0%, #270C0C 100%);
+  /* background: linear-gradient(0deg, #000 0%, #270C0C 100%); */
   display: flex;
   justify-content: center;
   align-items: center;
@@ -57,19 +57,28 @@ body {
 .app {
   display: flex;
   flex-direction: column;
-  justify-content: flex-start; /* Align to the left */
-  align-items: flex-start; /* Align to the top */
-  background-image: url('/src/img/background.png');
+  justify-content: center; /* Changed from flex-start */
+  align-items: center; /* Changed from flex-start */
+  background-image: url('/img/background.png');
   background-size: cover;
   background-repeat: no-repeat;
   background-position: center;
   border-radius: 40px;
-  height: calc(100vh - 90px); /* Subtract combined top and bottom margins (40px each) */
-  width: calc(100vw - 8vw); /* Subtract combined left and right margins (10vw each) */
-  margin-bottom:20px;
-  overflow: hidden; /* Prevent overflow outside border radius */
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25); /* Add subtle shadow */
-  
+  height: calc(100vh - 90px);
+  width: calc(100vw - 8vw);
+  margin-bottom: 20px;
+  overflow: hidden;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+}
+
+.p-8 {
+  background-color: rgba(0, 0, 0, 0.85); /* Made more opaque */
+  border-radius: 16px;
+  backdrop-filter: blur(8px);
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .top-container{
@@ -143,9 +152,3 @@ body {
   flex: 2;
   text-align: center;
  }
-
-.p-8 {
-  background-color: rgba(0, 0, 0, 0.7); /* Adds a semi-transparent dark overlay */
-  border-radius: 16px;
-  backdrop-filter: blur(8px);
-}

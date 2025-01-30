@@ -284,14 +284,17 @@ function App() {
   );
 
   return (
-    <div className="p-8 max-w-4xl mx-auto">
-      <NavigationHeader />
-      
-      {currentView === 'game' ? (
-        <GameView />
-      ) : (
-        <Leaderboard />
-      )}
+    <div className="app">
+      <div className="p-8 w-full flex justify-center">
+        <NavigationHeader />
+        <div className="max-w-4xl">
+          {currentView === 'game' ? (
+            <GameView />
+          ) : (
+            <Leaderboard />
+          )}
+        </div>
+      </div>
     </div>
   );
 }
