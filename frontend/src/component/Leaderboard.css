@@ -1,0 +1,59 @@
+/* Leaderboard.css */
+.leaderboard-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 20px;
+  width: 100%;
+  height: 100%;  /* Added to ensure full height */
+}
+
+.leaderboard-content {
+  width: 150%;
+  max-width: 2000px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.leaderboard-table-container {
+  width: 100%;
+  background-color: rgba(0, 0, 0, 0.95);
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+.leaderboard-header {
+  width: 100%;
+  padding: 1.5rem;
+  background: linear-gradient(to right, #4f46e5, #9333ea);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Add specific table styles */
+.leaderboard-table {
+  width: 100%;
+  border-spacing: 0;
+  border-collapse: collapse;
+}
+
+/* Reduce the vertical padding in table cells */
+.leaderboard-table th,
+.leaderboard-table td {
+  padding: 0.5rem 1rem;  /* Reduced from 1rem to 0.5rem for top/bottom padding */
+}
+
+.leaderboard-table th:nth-child(2),
+.leaderboard-table td:nth-child(2) {
+  padding-right: 8rem; /* Add significant spacing before the score column */
+}
+
+.leaderboard-table th:last-child,
+.leaderboard-table td:last-child {
+  text-align: right;
+  width: 150px; /* Fixed width for score column */
+}

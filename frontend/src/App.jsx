@@ -185,7 +185,7 @@ function App() {
 
   // Component for the navigation header
   const NavigationHeader = () => (
-    <div className="flex justify-between items-center mb-6 bg-gray-100 p-4 rounded-lg">
+    <div className="flex justify-between items-center mb-6 bg-gray-100 p-4 rounded-lg w-full max-w-4xl">
       <h1 className="text-3xl font-bold">AI Dating Game Show</h1>
       <div className="space-x-4">
         <button
@@ -285,15 +285,13 @@ function App() {
 
   return (
     <div className="app">
-      <div className="p-8 w-full flex justify-center">
+      <div className="p-8 w-full h-full flex flex-col items-center">
         <NavigationHeader />
-        <div className="max-w-4xl">
-          {currentView === 'game' ? (
-            <GameView />
-          ) : (
-            <Leaderboard />
-          )}
-        </div>
+        {currentView === 'game' ? (
+          <GameView />
+        ) : (
+          <Leaderboard />
+        )}
       </div>
     </div>
   );
