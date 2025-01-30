@@ -1,7 +1,7 @@
 import React, {useState, useEffect, useRef} from 'react';
 import {io} from 'socket.io-client';
 
-const GAME_SERVER_URL = 'http://51.159.182.101:80';
+const GAME_SERVER_URL = 'http://localhost:8000'; //'http://51.159.182.101:80';
 const SOCKET_SERVER_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000';
 const REACT_APP_ELEVENLABS_API_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY;
 
@@ -192,16 +192,30 @@ function App() {
 
             // Get ratings for all answers
             const ratedAnswers = await Promise.all(answers.map(async ({player, answer}) => {
-                const response = await fetch(`${GAME_SERVER_URL}/rate-answer`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        conversation: `Question: ${currentQuestion}\nAnswer: ${answer}`,
-                        round_number: gameState.round
-                    })
-                });
-                const data = await response.json();
-                return {...player, answer, rating: data.rating};
+                try {
+                    const response = await fetch(`${GAME_SERVER_URL}/rate-answer`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            conversation: `Question: ${currentQuestion}\nAnswer: ${answer}`,
+                            round_number: gameState.round
+                        })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    if (typeof data.rating !== 'number') {
+                        throw new Error('Invalid rating received');
+                    }
+
+                    return {...player, answer, rating: data.rating};
+                } catch (error) {
+                    console.error(`Rating error for player ${player.username}:`, error);
+                    return {...player, answer, rating: 5}; // Fallback rating
+                }
             }));
 
             // Update conversation history
