@@ -4,7 +4,7 @@ import { io } from 'socket.io-client';
 const socket = io('http://localhost:3000');
 
 const REACT_APP_ELEVENLABS_API_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY;
-const GAME_SERVER_URL = 'http://localhost:8000';
+const GAME_SERVER_URL = 'http://51.159.182.101:80';
 
 const VOICE_IDS = {
     host: 'Ybqj6CIlqb6M85s9Bl4n',
@@ -264,7 +264,15 @@ function App() {
     const processRoundResponses = async (userResponseText) => {
         try {
             const currentQuestion = questionsRef.current[gameState.round - 1];
-            const aiAnswers = await handleFetchWithRetry(`${GAME_SERVER_URL}/get-ai-answers?question=${encodeURIComponent(currentQuestion)}`);
+
+            // Fetch AI answers for each contestant
+            const aiAnswers = {};
+            for (let contestant = 1; contestant <= 2; contestant++) {
+                const response = await handleFetchWithRetry(
+                    `${GAME_SERVER_URL}/get-ai-answers?question=${encodeURIComponent(currentQuestion)}&contestant=${contestant}`
+                );
+                aiAnswers[`contestant${contestant}`] = response.answer;
+            }
 
             // Create an object to store all ratings
             const roundRatings = {
