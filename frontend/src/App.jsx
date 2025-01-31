@@ -461,18 +461,6 @@ function App() {
                 <Participants />
             </div>
 
-            {error && (
-                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 flex justify-between items-center">
-                    <span>{error}</span>
-                    <button
-                        onClick={() => setError('')}
-                        className="text-red-700 hover:text-red-900"
-                    >
-                        ×
-                    </button>
-                </div>
-            )}
-
             <div className="mb-6 bg-gray-50 p-4 rounded-lg shadow">
                 <div className="grid grid-cols-2 gap-4">
                     <div>
