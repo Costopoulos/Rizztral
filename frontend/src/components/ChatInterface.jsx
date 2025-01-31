@@ -1,4 +1,5 @@
 import React from 'react';
+import './Participants.css';
 
 export const ChatInterface = ({
     gameState,
@@ -9,7 +10,6 @@ export const ChatInterface = ({
     handleUserResponse,
     conversationHistory
 }) => {
-    // Get unique rounds and sort them in descending order (newest first)
     const rounds = [...new Set(conversationHistory.map(conv => conv.round))]
         .sort((a, b) => b - a);
 
@@ -68,34 +68,69 @@ export const ChatInterface = ({
                                 <h3 className="text-xl font-semibold mb-4 text-purple-700">
                                     Round {roundNumber}
                                 </h3>
-                                <div className="p-4 border rounded-lg mb-4">
-                                    <span className="text-gray-600 font-medium">Question:</span>
-                                    <p className="ml-4 text-gray-800 overflow-wrap-anywhere">{question}</p>
-                                </div>
-                                <div className="space-y-4">
-                                    {roundConversations.map((conv, index) => (
-                                        <div
-                                            key={`${roundNumber}-${index}`}
-                                            className="p-4 border rounded-lg hover:shadow-md transition-shadow ml-4"
-                                        >
-                                            <div className="flex justify-between items-start mb-2">
-                                                <span className="font-semibold text-purple-600 max-w-[80%] overflow-wrap-anywhere">
-                                                    {conv.contestant === 3 ? 'You' : `AI Contestant ${conv.contestant}`}
-                                                </span>
-                                                {conv.rating !== undefined && (
-                                                    <span className="text-green-600 font-medium shrink-0">
-                                                        Rating: {conv.rating.toFixed(1)}/10
-                                                    </span>
-                                                )}
+                                <div className="row my-2 text-white">
+                                    {/* Question Bubble */}
+                                    <div className="d-flex">
+                                        <div className="message-bubble bg-dark rounded-end mb-3">
+                                            <div className="chat-avatar-container">
+                                                <img
+                                                    src="/img/target.jpg"
+                                                    className="user-img"
+                                                    alt="Host"
+                                                />
                                             </div>
-                                            <div>
-                                                <span className="text-gray-600 font-medium">Response:</span>
-                                                <p className="ml-4 text-gray-800 overflow-wrap-anywhere">
-                                                    {conv.response}
-                                                </p>
+                                            <div className="text-content">
+                                                <p className="mb-0"><strong>Question:</strong> {question}</p>
                                             </div>
                                         </div>
-                                    ))}
+                                    </div>
+
+                                    {roundConversations.map((conv, index) => {
+                                        const isUser = conv.contestant === 3;
+                                        const avatarMap = {
+                                            1: '/img/chad.jpg',
+                                            2: '/img/jacques.jpg',
+                                            3: '/img/brad.jpg'
+                                        };
+
+                                        return (
+                                            <div
+                                                key={`${roundNumber}-${index}`}
+                                                className={`mt-2 d-flex ${isUser ? 'justify-content-end' : ''}`}
+                                            >
+                                                <div className={`message-bubble bg-dark ${
+                                                    isUser ? 'rounded-start flex-row-reverse' : 'rounded-end'
+                                                }`}>
+                                                    {!isUser && (
+                                                        <div className="chat-avatar-container">
+                                                            <img
+                                                                src={avatarMap[conv.contestant]}
+                                                                className="user-img"
+                                                                alt={`Contestant ${conv.contestant}`}
+                                                            />
+                                                        </div>
+                                                    )}
+                                                    <div className="text-content">
+                                                        <p className="mb-0">
+                                                            {conv.response}
+                                                            <small className="d-block text-muted mt-1">
+                                                                Rating: {conv.rating.toFixed(1)}/10
+                                                            </small>
+                                                        </p>
+                                                    </div>
+                                                    {isUser && (
+                                                        <div className="chat-avatar-container">
+                                                            <img
+                                                                src={avatarMap[3]}
+                                                                className="user-img"
+                                                                alt="You"
+                                                            />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         );
