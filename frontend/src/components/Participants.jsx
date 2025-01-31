@@ -14,14 +14,14 @@ function Participant({ imgSrc, name, heart, isActive }) {
 
 export const Participants = ({ gameState }) => {
   const firstRow = [
-    { imgSrc: '/img/marvey.jpg', name: 'Host (AI)', heart: '🎤' },
-    { imgSrc: '/img/target.jpg', name: 'Clarissa (AI)', heart: '❤️❤️❤️❤️' },
+    { imgSrc: '/img/marvey.jpg', name: 'Host', heart: '🎤' },
+    { imgSrc: '/img/target.jpg', name: 'Mistral-Large', heart: '❤️❤️❤️❤️' },
   ];
 
   const secondRow = [
-    { imgSrc: '/img/brad.jpg', name: 'AI 1', heart: '🤖' },
-    { imgSrc: '/img/chad.jpg', name: 'AI 2', heart: '🤖' },
-    { imgSrc: '/img/jacques.jpg', name: 'You', heart: '😅' },
+    { imgSrc: '/img/jacques.jpg', name: 'Ministral-3B', heart: '🤖1' },
+    { imgSrc: '/img/brad.jpg', name: 'Ministral-8B', heart: '🤖2' },
+    { imgSrc: '/img/chad.jpg', name: 'You', heart: '😅' },
   ];
 
   const hostActiveStages = ['host_intro', 'winner_announcement'];

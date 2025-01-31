@@ -2,14 +2,14 @@ import React from 'react';
 import './ChatInterface.css';
 
 export const ChatInterface = ({
-    gameState,
-    gameText,
-    userResponse,
-    setUserResponse,
-    timeRemaining,
-    handleUserResponse,
-    conversationHistory
-}) => {
+                                  gameState,
+                                  gameText,
+                                  userResponse,
+                                  setUserResponse,
+                                  timeRemaining,
+                                  handleUserResponse,
+                                  conversationHistory
+                              }) => {
     const rounds = [...new Set(conversationHistory.map(conv => conv.round))]
         .sort((a, b) => b - a);
 
@@ -65,6 +65,14 @@ export const ChatInterface = ({
                                         >
                                             Play Again
                                         </button>
+                                        <a
+                                            href="https://rizztral-leaderboard.onrender.com/"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="mt-4 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors inline-flex items-center"
+                                        >
+                                            View Leaderboard
+                                        </a>
                                     </div>
                                 )}
                             </div>
@@ -115,7 +123,8 @@ export const ChatInterface = ({
                                                         key={`${roundNumber}-${index}`}
                                                         className={isUser ? 'message-container-user' : 'message-container-bot'}
                                                     >
-                                                        <div className={`message-bubble ${isUser ? 'user-message' : 'bot-message'}`}>
+                                                        <div
+                                                            className={`message-bubble ${isUser ? 'user-message' : 'bot-message'}`}>
                                                             {!isUser && (
                                                                 <div className="chat-avatar-container">
                                                                     <img
