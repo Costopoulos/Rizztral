@@ -454,7 +454,7 @@ function App() {
 
     return (
         <div className="app-container">
-            <h1 className="text-3xl font-bold mb-6 text-purple-800">AI Dating Game Show</h1>
+            {/* <h1 className="text-3xl font-bold mb-6 text-purple-800">AI Dating Game Show</h1> */}
             
             {/*Participant avatars*/}
             <div className="top-container">

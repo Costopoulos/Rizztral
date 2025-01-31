@@ -26,7 +26,9 @@ export const Participants = () => {
 
   return (
     <div className="participants-container">
-      <div className="rizzler">Rizztral 2.0</div>
+      <div className="logo">
+          <img src="/img/logo.png" alt="Rizztral 2.0 Logo" />
+      </div>
       <div className="container2">
         <div className="row">
           {firstRow.map((participant, index) => (

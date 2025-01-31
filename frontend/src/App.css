@@ -37,6 +37,18 @@
   gap:35vw;
 }
 
+.logo {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.logo img {
+  max-width: 300px;  /* Adjust this value based on your logo size */
+  height: auto;
+}
+
+
 .chat-history {
   flex: 1;
   overflow-y: auto;
