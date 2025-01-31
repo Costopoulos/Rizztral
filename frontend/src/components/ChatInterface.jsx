@@ -1,5 +1,5 @@
 import React from 'react';
-import './Participants.css';
+import './ChatInterface.css';
 
 export const ChatInterface = ({
     gameState,
@@ -14,11 +14,11 @@ export const ChatInterface = ({
         .sort((a, b) => b - a);
 
     return (
-        <div className="flex flex-col gap-4 w-3/5 mx-auto">
-            <div className="bg-white rounded-lg shadow-lg p-6">
+        <div className="chat-container">
+            <div className="chat-box">
                 {gameState.waitingForUserResponse && (
-                    <div className="mb-4">
-                        <div className="text-xl font-semibold mb-2 text-purple-700">
+                    <div>
+                        <div className="timer-text">
                             Your Turn! Time remaining: {timeRemaining}s
                         </div>
                         <form
@@ -26,18 +26,18 @@ export const ChatInterface = ({
                                 e.preventDefault();
                                 await handleUserResponse(false);
                             }}
-                            className="space-y-4"
+                            className="response-form"
                         >
                             <textarea
                                 value={userResponse}
                                 onChange={(e) => setUserResponse(e.target.value)}
-                                className="w-full p-4 border rounded-lg mb-4 h-32 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                className="response-textarea"
                                 placeholder="Type your response here..."
                             />
                             <button
                                 type="submit"
                                 disabled={userResponse.trim() === ''}
-                                className="bg-purple-500 hover:bg-purple-600 text-white px-6 py-3 rounded-lg text-lg font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                                className="submit-button"
                             >
                                 Submit Response
                             </button>
@@ -46,16 +46,16 @@ export const ChatInterface = ({
                 )}
 
                 {gameText && (
-                    <div className="bg-gray-50 p-4 rounded-lg mb-4">
-                        <h2 className="font-bold mb-2 text-purple-800">Current Text:</h2>
-                        <p className="text-lg overflow-wrap-anywhere">{gameText}</p>
+                    <div className="game-text-container">
+                        <h2 className="game-text-title">Current Text:</h2>
+                        <p className="game-text">{gameText}</p>
                     </div>
                 )}
             </div>
 
             {conversationHistory.length > 0 && (
-                <div className="bg-white rounded-lg shadow-lg p-6 h-96 overflow-y-auto">
-                    <h2 className="text-2xl font-bold mb-6 text-purple-800">Conversation History</h2>
+                <div className="history-container">
+                    <h2 className="history-title">Conversation History</h2>
                     {rounds.map(roundNumber => {
                         const roundConversations = conversationHistory.filter(
                             conv => conv.round === roundNumber
@@ -64,24 +64,21 @@ export const ChatInterface = ({
                         const question = roundConversations[0]?.question;
 
                         return (
-                            <div key={roundNumber} className="mb-8 last:mb-0">
-                                <h3 className="text-xl font-semibold mb-4 text-purple-700">
+                            <div key={roundNumber} className="round-container">
+                                <h3 className="round-title">
                                     Round {roundNumber}
                                 </h3>
-                                <div className="row my-2 text-white">
-                                    {/* Question Bubble */}
-                                    <div className="d-flex">
-                                        <div className="message-bubble bg-dark rounded-end mb-3">
-                                            <div className="chat-avatar-container">
-                                                <img
-                                                    src="/img/target.jpg"
-                                                    className="user-img"
-                                                    alt="Host"
-                                                />
-                                            </div>
-                                            <div className="text-content">
-                                                <p className="mb-0"><strong>Question:</strong> {question}</p>
-                                            </div>
+                                <div>
+                                    <div className="question-bubble">
+                                        <div className="chat-avatar-container">
+                                            <img
+                                                src="/img/target.jpg"
+                                                className="user-img"
+                                                alt="Host"
+                                            />
+                                        </div>
+                                        <div className="text-content">
+                                            <p><strong>Question:</strong> {question}</p>
                                         </div>
                                     </div>
 
@@ -96,11 +93,9 @@ export const ChatInterface = ({
                                         return (
                                             <div
                                                 key={`${roundNumber}-${index}`}
-                                                className={`mt-2 d-flex ${isUser ? 'justify-content-end' : ''}`}
+                                                className={isUser ? 'message-container-user' : 'message-container-bot'}
                                             >
-                                                <div className={`message-bubble bg-dark ${
-                                                    isUser ? 'rounded-start flex-row-reverse' : 'rounded-end'
-                                                }`}>
+                                                <div className={`message-bubble ${isUser ? 'user-message' : 'bot-message'}`}>
                                                     {!isUser && (
                                                         <div className="chat-avatar-container">
                                                             <img
@@ -111,11 +106,11 @@ export const ChatInterface = ({
                                                         </div>
                                                     )}
                                                     <div className="text-content">
-                                                        <p className="mb-0">
+                                                        <p>
                                                             {conv.response}
-                                                            <small className="d-block text-muted mt-1">
+                                                            <span className="rating-text">
                                                                 Rating: {conv.rating.toFixed(1)}/10
-                                                            </small>
+                                                            </span>
                                                         </p>
                                                     </div>
                                                     {isUser && (
