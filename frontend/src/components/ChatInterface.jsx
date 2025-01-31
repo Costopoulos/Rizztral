@@ -69,7 +69,7 @@ export const ChatInterface = ({
                                     Round {roundNumber}
                                 </h3>
                                 <div>
-                                    <div className="question-bubble">
+                                    <div className="message-bubble bot-message">
                                         <div className="chat-avatar-container">
                                             <img
                                                 src="/img/target.jpg"
@@ -78,7 +78,9 @@ export const ChatInterface = ({
                                             />
                                         </div>
                                         <div className="text-content">
-                                            <p><strong>Question:</strong> {question}</p>
+                                            <p>
+                                                <strong>Question:</strong> {question}
+                                            </p>
                                         </div>
                                     </div>
 
@@ -86,8 +88,8 @@ export const ChatInterface = ({
                                         const isUser = conv.contestant === 3;
                                         const avatarMap = {
                                             1: '/img/chad.jpg',
-                                            2: '/img/jacques.jpg',
-                                            3: '/img/brad.jpg'
+                                            2: '/img/brad.jpg',
+                                            3: '/img/jacques.jpg'
                                         };
 
                                         return (
