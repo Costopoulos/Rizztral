@@ -1,4 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
+import Participants from './component/Participants';
+import ChatBox from './component/ChatBox';
+
 import { io } from 'socket.io-client';
 
 const socket = io('http://localhost:3000');
@@ -20,6 +23,7 @@ const WINNER_ANNOUNCEMENTS = {
 };
 
 function App() {
+    const [currentView, setCurrentView] = useState('game');
     const [gameState, setGameState] = useState({
         round: 1,
         currentContestant: 1,
@@ -453,9 +457,12 @@ function App() {
         };
     }, []);
 
-    return (
-        <div className="p-8 max-w-4xl mx-auto">
-            <h1 className="text-3xl font-bold mb-6 text-purple-800">AI Dating Game Show</h1>
+
+    const GameView = () => (
+        <>
+            <div className="top-container">
+                <Participants />
+            </div>
 
             {error && (
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 flex justify-between items-center">
@@ -487,6 +494,7 @@ function App() {
                 </div>
             </div>
 
+            {/* Game controls */}
             <div className="mb-6 space-x-4">
                 <button
                     onClick={runGameLoop}
@@ -530,6 +538,7 @@ function App() {
                 </button>
             </div>
 
+            {/* User response section */}
             {gameState.waitingForUserResponse && (
                 <div className="mb-6 bg-white shadow-lg rounded-lg p-6">
                     <div className="text-xl font-semibold mb-2 text-purple-700">
@@ -559,6 +568,7 @@ function App() {
                 </div>
             )}
 
+            {/* Game text display */}
             {gameText && (
                 <div className="bg-gray-100 p-6 rounded-lg mb-6 shadow">
                     <h2 className="font-bold mb-2 text-purple-800">Current Text:</h2>
@@ -566,6 +576,7 @@ function App() {
                 </div>
             )}
 
+            {/* Winner announcement */}
             {gameState.winner && (
                 <div className="mb-6 bg-green-100 p-6 rounded-lg shadow-lg">
                     <h2 className="text-2xl font-bold text-green-800 mb-2">
@@ -575,17 +586,10 @@ function App() {
                         {gameState.winner === 'contestant3' ? 'Congratulations! You won!' :
                             `AI Contestant ${gameState.winner.slice(-1)} won!`}
                     </p>
-                    {gameState.stage === 'game_complete' && (
-                        <button
-                            onClick={() => window.location.reload()}
-                            className="mt-4 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-colors"
-                        >
-                            Play Again
-                        </button>
-                    )}
                 </div>
             )}
 
+            {/* Conversation history */}
             {conversationHistory.length > 0 && (
                 <div className="bg-white shadow-lg rounded-lg p-6 mb-8">
                     <h2 className="text-2xl font-bold mb-6 text-purple-800">Conversation History</h2>
@@ -638,6 +642,14 @@ function App() {
                     })}
                 </div>
             )}
+        </>
+    );
+
+    return (
+        <div className="app">
+            <div className="p-8 w-full h-full flex flex-col items-center">
+                <GameView />
+            </div>
         </div>
     );
 }
