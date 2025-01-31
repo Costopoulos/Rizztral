@@ -2,8 +2,6 @@ import React from 'react';
 import './GameStatus.css';
 
 export const GameStatus = ({ gameState }) => {
-  console.log('Current stage:', gameState.stage);
-
     return (
         <div className="game-status-container">
             <div className="game-status-box">

@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { ChatInterface } from './components/ChatInterface';
-import { Participants } from './components/Participants';
-import { GameStatus } from './components/GameStatus';
+import React, {useState, useEffect, useRef} from 'react';
+import {ChatInterface} from './components/ChatInterface';
+import {Participants} from './components/Participants';
+import {GameStatus} from './components/GameStatus';
 
 const REACT_APP_ELEVENLABS_API_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY;
 const GAME_SERVER_URL = 'http://51.159.182.101:80';
@@ -75,7 +75,7 @@ function App() {
 
     const advanceStage = () => {
         const stages = [
-            'initial', 
+            'initial',
             'host_intro', // host
             'ai_intro', // chiwen
             'question_submission', // chiwen
@@ -84,13 +84,13 @@ function App() {
             'rating',
             'next_round',
             'winner_announcement', // host
-            'game_complete' 
+            'game_complete'
         ];
 
         setGameState(prev => {
             const currentIndex = stages.indexOf(prev.stage);
             if (currentIndex < stages.length - 1) {
-                return { ...prev, stage: stages[currentIndex + 1] };
+                return {...prev, stage: stages[currentIndex + 1]};
             }
             return prev;
         });
@@ -124,18 +124,18 @@ function App() {
             const audioUrl = URL.createObjectURL(audioBlob);
             const audio = new Audio(audioUrl);
 
-            setGameState(prev => ({ ...prev, isPlaying: true }));
+            setGameState(prev => ({...prev, isPlaying: true}));
 
             return new Promise((resolve) => {
                 audio.onended = () => {
-                    setGameState(prev => ({ ...prev, isPlaying: false }));
+                    setGameState(prev => ({...prev, isPlaying: false}));
                     URL.revokeObjectURL(audioUrl);
                     resolve();
                 };
                 audio.play();
             });
         } catch (error) {
-            setGameState(prev => ({ ...prev, isPlaying: false }));
+            setGameState(prev => ({...prev, isPlaying: false}));
         }
     };
 
@@ -269,7 +269,7 @@ function App() {
                     `${GAME_SERVER_URL}/rate-answer`,
                     {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({
                             conversation: `Question: ${currentQuestion}\nAnswer: ${answer}`,
                             round_number: gameState.round
@@ -283,7 +283,7 @@ function App() {
                 `${GAME_SERVER_URL}/rate-answer`,
                 {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
                         conversation: `Question: ${currentQuestion}\nAnswer: ${userResponseText}`,
                         round_number: gameState.round
@@ -337,7 +337,7 @@ function App() {
     const waitForUserResponse = () => {
         return new Promise((resolve, reject) => {
             responseHandledRef.current = false;
-            userResponsePromiseRef.current = { resolve, reject };
+            userResponsePromiseRef.current = {resolve, reject};
         });
     };
 
@@ -430,29 +430,9 @@ function App() {
     return (
         <div className="app-container">
             <div className="top-container">
-                <Participants gameState={gameState} />
-                <GameStatus gameState={gameState} />
+                <Participants gameState={gameState}/>
+                <GameStatus gameState={gameState}/>
             </div>
-
-            {gameState.winner && (
-                <div className="mb-6 bg-green-100 p-6 rounded-lg shadow-lg">
-                    <h2 className="text-2xl font-bold text-green-800 mb-2">
-                        Winner Announcement!
-                    </h2>
-                    <p className="text-lg text-green-700">
-                        {gameState.winner === 'contestant3' ? 'Congratulations! You won!' :
-                            `AI Contestant ${gameState.winner.slice(-1)} won!`}
-                    </p>
-                    {gameState.stage === 'game_complete' && (
-                        <button
-                            onClick={() => window.location.reload()}
-                            className="mt-4 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-colors"
-                        >
-                            Play Again
-                        </button>
-                    )}
-                </div>
-            )}
 
             <div className="mb-6 space-x-4">
                 <button

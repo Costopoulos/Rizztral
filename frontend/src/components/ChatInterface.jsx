@@ -48,6 +48,23 @@ export const ChatInterface = ({
                 {gameText && (
                     <div className="game-text-container">
                         <p className="game-text">{gameText}</p>
+                        {gameState.winner && gameState.stage === 'winner_announcement' && (
+                            <div className="winner-announcement bg-green-100 p-6 rounded-lg shadow-lg mt-4">
+                                <h2 className="text-2xl font-bold text-green-800 mb-2 game-text-title">
+                                    Winner Announcement!
+                                </h2>
+                                <p className="text-lg text-green-700">
+                                    {gameState.winner === 'contestant3' ? 'Congratulations! You won!' :
+                                        `AI Contestant ${gameState.winner.slice(-1)} won!`}
+                                </p>
+                                    <button
+                                        onClick={() => window.location.reload()}
+                                        className="mt-4 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-colors"
+                                    >
+                                        Play Again
+                                    </button>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
