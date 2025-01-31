@@ -7,7 +7,7 @@
   margin: 0 auto;
   padding: 2rem;
   background-color: #f3f4f6;
-  min-height: auto;  /* Remove fixed height */
+  min-height: auto;
 }
 
 .chat-box {
@@ -19,7 +19,7 @@
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
-  min-height: auto;  /* Allow box to collapse when empty */
+  min-height: auto;
   display: flex;
   flex-direction: column;
 }
