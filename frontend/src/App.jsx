@@ -75,16 +75,16 @@ function App() {
 
     const advanceStage = () => {
         const stages = [
-            'initial',
-            'host_intro',
-            'ai_intro',
-            'question_submission',
-            'round_start',
-            'answer_submission',
+            'initial', 
+            'host_intro', // host
+            'ai_intro', // chiwen
+            'question_submission', // chiwen
+            'round_start', // host
+            'answer_submission', // you
             'rating',
             'next_round',
-            'winner_announcement',
-            'game_complete'
+            'winner_announcement', // host
+            'game_complete' 
         ];
 
         setGameState(prev => {

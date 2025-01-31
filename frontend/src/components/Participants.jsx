@@ -14,8 +14,8 @@ function Participant({ imgSrc, name, heart, isActive }) {
 
 export const Participants = ({ gameState }) => {
   const firstRow = [
-    { imgSrc: '/img/marvey.jpg', name: 'Host', heart: '❤️❤️❤️❤️' },
-    { imgSrc: '/img/target.jpg', name: 'Clarissa', heart: '🎤' },
+    { imgSrc: '/img/marvey.jpg', name: 'Host (AI)', heart: '🎤' },
+    { imgSrc: '/img/target.jpg', name: 'Clarissa (AI)', heart: '❤️❤️❤️❤️' },
   ];
 
   const secondRow = [
@@ -23,6 +23,9 @@ export const Participants = ({ gameState }) => {
     { imgSrc: '/img/chad.jpg', name: 'AI 2', heart: '🤖' },
     { imgSrc: '/img/jacques.jpg', name: 'You', heart: '😅' },
   ];
+
+  const hostActiveStages = ['host_intro', 'winner_announcement'];
+  const clarissaActiveStages = ['ai_intro', 'round_start', 'question_submission'];
 
   return (
     <div className="participants-container">
@@ -37,7 +40,10 @@ export const Participants = ({ gameState }) => {
               imgSrc={participant.imgSrc}
               name={participant.name}
               heart={participant.heart}
-              isActive={false}
+              isActive={
+                (participant.name === 'Host (AI)' && hostActiveStages.includes(gameState?.stage)) ||
+                (participant.name === 'Clarissa (AI)' && clarissaActiveStages.includes(gameState?.stage))
+              }
             />
           ))}
         </div>
