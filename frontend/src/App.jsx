@@ -452,7 +452,7 @@ function App() {
     }, []);
 
     return (
-        <div className="p-8 max-w-4xl mx-auto">
+        <div className="app-container">
             <h1 className="text-3xl font-bold mb-6 text-purple-800">AI Dating Game Show</h1>
 
             {error && (

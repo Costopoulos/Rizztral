@@ -3,6 +3,31 @@
   margin: 0 auto;
   padding: 2rem;
   text-align: center;
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;
+}
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-image: url('/img/background.png');
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center;
+  border-radius: 40px;
+  min-height: calc(100vh - 90px);
+  width: calc(100vw - 8vw);
+  margin-bottom: 20px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+  padding-top: 2rem;
+}
+
+.chat-history {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 .logo {
