@@ -9,6 +9,10 @@ export const ChatInterface = ({
     handleUserResponse,
     conversationHistory
 }) => {
+    // Get unique rounds and sort them in descending order (newest first)
+    const rounds = [...new Set(conversationHistory.map(conv => conv.round))]
+        .sort((a, b) => b - a);
+
     return (
         <div className="flex flex-col gap-4 w-3/5 mx-auto">
             <div className="bg-white rounded-lg shadow-lg p-6">
@@ -52,8 +56,7 @@ export const ChatInterface = ({
             {conversationHistory.length > 0 && (
                 <div className="bg-white rounded-lg shadow-lg p-6 h-96 overflow-y-auto">
                     <h2 className="text-2xl font-bold mb-6 text-purple-800">Conversation History</h2>
-                    {[...Array(gameState.maxRounds)].map((_, roundIndex) => {
-                        const roundNumber = roundIndex + 1;
+                    {rounds.map(roundNumber => {
                         const roundConversations = conversationHistory.filter(
                             conv => conv.round === roundNumber
                         );

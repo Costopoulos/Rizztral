@@ -38,7 +38,6 @@ function App() {
     });
 
     const [gameText, setGameText] = useState('');
-    const [error, setError] = useState('');
     const [userResponse, setUserResponse] = useState('');
     const [timeRemaining, setTimeRemaining] = useState(30);
     const [conversationHistory, setConversationHistory] = useState([]);
@@ -135,8 +134,6 @@ function App() {
                 audio.play();
             });
         } catch (error) {
-            console.error('Error in text-to-speech:', error);
-            setError('Audio playback failed - continuing with text only');
             setGameState(prev => ({ ...prev, isPlaying: false }));
         }
     };
@@ -168,7 +165,6 @@ function App() {
     };
 
     const startResponseTimer = () => {
-        // Reset the response handled flag for new round
         responseHandledRef.current = false;
 
         setTimeRemaining(30);
@@ -191,20 +187,13 @@ function App() {
     const handleTimeUp = async () => {
         if (responseHandledRef.current) return;
 
-        // Clear timer
         if (timerRef.current) {
             clearInterval(timerRef.current);
             timerRef.current = null;
         }
 
-        // Mark response as handled
         responseHandledRef.current = true;
 
-        if (userResponse.trim() === '') {
-            setError("Time's up! Submitting default response.");
-        }
-
-        // Submit the response
         const defaultResponse = "I don't know";
         setUserResponse(defaultResponse);
 
@@ -224,13 +213,11 @@ function App() {
     const handleUserResponse = async (isTimeout = false) => {
         if (responseHandledRef.current) return;
 
-        // Clear timer
         if (timerRef.current) {
             clearInterval(timerRef.current);
             timerRef.current = null;
         }
 
-        // Mark response as handled
         responseHandledRef.current = true;
 
         try {
@@ -251,8 +238,6 @@ function App() {
 
             setUserResponse('');
         } catch (error) {
-            console.error('Error submitting response:', error);
-            setError('Failed to submit response - please try again');
             if (userResponsePromiseRef.current) {
                 userResponsePromiseRef.current.reject(error);
                 userResponsePromiseRef.current = null;
@@ -264,7 +249,6 @@ function App() {
         try {
             const currentQuestion = questionsRef.current[gameState.round - 1];
 
-            // Fetch AI answers for each contestant
             const aiAnswers = {};
             for (let contestant = 1; contestant <= 2; contestant++) {
                 const response = await handleFetchWithRetry(
@@ -273,14 +257,12 @@ function App() {
                 aiAnswers[`contestant${contestant}`] = response.answer;
             }
 
-            // Create an object to store all ratings
             const roundRatings = {
                 contestant1: 0,
                 contestant2: 0,
                 contestant3: 0
             };
 
-            // Rate AI contestants first
             for (const [contestant, answer] of Object.entries(aiAnswers)) {
                 const response = await handleFetchWithRetry(
                     `${GAME_SERVER_URL}/rate-answer`,
@@ -296,7 +278,6 @@ function App() {
                 roundRatings[contestant] = response.rating;
             }
 
-            // Rate user response
             const userRating = await handleFetchWithRetry(
                 `${GAME_SERVER_URL}/rate-answer`,
                 {
@@ -310,12 +291,10 @@ function App() {
             );
             roundRatings.contestant3 = userRating.rating;
 
-            // Update both ref and state
             Object.keys(roundRatings).forEach(contestant => {
                 ratingsRef.current[contestant].push(roundRatings[contestant]);
             });
 
-            // Update gameState
             setGameState(prev => ({
                 ...prev,
                 contestantRatings: {
@@ -350,15 +329,12 @@ function App() {
                 return newHistory;
             });
         } catch (error) {
-            console.error('Error processing round responses:', error);
-            setError('Failed to process round responses');
             throw error;
         }
     };
 
     const waitForUserResponse = () => {
         return new Promise((resolve, reject) => {
-            // Reset response handled flag when waiting for new response
             responseHandledRef.current = false;
             userResponsePromiseRef.current = { resolve, reject };
         });
@@ -436,8 +412,6 @@ function App() {
                 }));
             }
         } catch (error) {
-            console.error('Error in game loop:', error);
-            setError(`Game error: ${error.message}`);
             setGameState(prev => ({
                 ...prev,
                 isGameStarted: false,
@@ -454,22 +428,27 @@ function App() {
 
     return (
         <div className="app-container">
-            {/* <h1 className="text-3xl font-bold mb-6 text-purple-800">AI Dating Game Show</h1> */}
-            
-            {/*Participant avatars*/}
             <div className="top-container">
                 <Participants />
             </div>
 
-            {error && (
-                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 flex justify-between items-center">
-                    <span>{error}</span>
-                    <button
-                        onClick={() => setError('')}
-                        className="text-red-700 hover:text-red-900"
-                    >
-                        ×
-                    </button>
+            {gameState.winner && (
+                <div className="mb-6 bg-green-100 p-6 rounded-lg shadow-lg">
+                    <h2 className="text-2xl font-bold text-green-800 mb-2">
+                        Winner Announcement!
+                    </h2>
+                    <p className="text-lg text-green-700">
+                        {gameState.winner === 'contestant3' ? 'Congratulations! You won!' :
+                            `AI Contestant ${gameState.winner.slice(-1)} won!`}
+                    </p>
+                    {gameState.stage === 'game_complete' && (
+                        <button
+                            onClick={() => window.location.reload()}
+                            className="mt-4 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-colors"
+                        >
+                            Play Again
+                        </button>
+                    )}
                 </div>
             )}
 
@@ -525,7 +504,6 @@ function App() {
                             }
                         });
                         setConversationHistory([]);
-                        setError('');
                     }}
                     disabled={gameState.isPlaying || !gameState.isGameStarted}
                     className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-lg text-lg font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
@@ -534,7 +512,7 @@ function App() {
                 </button>
             </div>
 
-            <ChatInterface 
+            <ChatInterface
                 gameState={gameState}
                 gameText={gameText}
                 userResponse={userResponse}
@@ -543,26 +521,6 @@ function App() {
                 handleUserResponse={handleUserResponse}
                 conversationHistory={conversationHistory}
             />
-
-            {gameState.winner && (
-                <div className="mb-6 bg-green-100 p-6 rounded-lg shadow-lg">
-                    <h2 className="text-2xl font-bold text-green-800 mb-2">
-                        Winner Announcement!
-                    </h2>
-                    <p className="text-lg text-green-700">
-                        {gameState.winner === 'contestant3' ? 'Congratulations! You won!' :
-                            `AI Contestant ${gameState.winner.slice(-1)} won!`}
-                    </p>
-                    {gameState.stage === 'game_complete' && (
-                        <button
-                            onClick={() => window.location.reload()}
-                            className="mt-4 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-colors"
-                        >
-                            Play Again
-                        </button>
-                    )}
-                </div>
-            )}
         </div>
     );
 }
