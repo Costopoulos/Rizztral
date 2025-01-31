@@ -47,7 +47,6 @@ export const ChatInterface = ({
 
                 {gameText && (
                     <div className="game-text-container">
-                        <h2 className="game-text-title">Current Text:</h2>
                         <p className="game-text">{gameText}</p>
                     </div>
                 )}
