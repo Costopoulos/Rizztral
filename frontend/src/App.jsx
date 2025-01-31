@@ -430,7 +430,7 @@ function App() {
     return (
         <div className="app-container">
             <div className="top-container">
-                <Participants />
+                <Participants gameState={gameState} />
                 <GameStatus gameState={gameState} />
             </div>
 
@@ -453,7 +453,7 @@ function App() {
                     )}
                 </div>
             )}
-            
+
             <div className="mb-6 space-x-4">
                 <button
                     onClick={runGameLoop}

@@ -1,8 +1,8 @@
 import './Participants.css';
 
-function Participant({ imgSrc, name, heart }) {
+function Participant({ imgSrc, name, heart, isActive }) {
   return (
-    <div className="participant">
+    <div className={`participant ${isActive ? 'active-participant' : ''}`}>
       <div className="participant-img">
         <img src={imgSrc} alt={`${name}'s avatar`} />
       </div>
@@ -12,7 +12,7 @@ function Participant({ imgSrc, name, heart }) {
   );
 }
 
-export const Participants = () => {
+export const Participants = ({ gameState }) => {
   const firstRow = [
     { imgSrc: '/img/marvey.jpg', name: 'Host', heart: '❤️❤️❤️❤️' },
     { imgSrc: '/img/target.jpg', name: 'Clarissa', heart: '🎤' },
@@ -37,6 +37,7 @@ export const Participants = () => {
               imgSrc={participant.imgSrc}
               name={participant.name}
               heart={participant.heart}
+              isActive={false}
             />
           ))}
         </div>
@@ -47,6 +48,7 @@ export const Participants = () => {
               imgSrc={participant.imgSrc}
               name={participant.name}
               heart={participant.heart}
+              isActive={participant.name === 'You' && gameState?.waitingForUserResponse}
             />
           ))}
         </div>
