@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChatInterface } from './components/ChatInterface';
 import { Participants } from './components/Participants';
+import { GameStatus } from './components/GameStatus';
 
 const REACT_APP_ELEVENLABS_API_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY;
 const GAME_SERVER_URL = 'http://51.159.182.101:80';
@@ -430,6 +431,7 @@ function App() {
         <div className="app-container">
             <div className="top-container">
                 <Participants />
+                <GameStatus gameState={gameState} />
             </div>
 
             {gameState.winner && (
@@ -451,25 +453,7 @@ function App() {
                     )}
                 </div>
             )}
-
-            <div className="mb-6 bg-gray-50 p-4 rounded-lg shadow">
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <div className="text-lg mb-2">Round: {gameState.round} / {gameState.maxRounds}</div>
-                        <div className="text-lg mb-2">Stage: {gameState.stage}</div>
-                    </div>
-                    <div>
-                        <div className="text-lg">
-                            Status: {
-                                gameState.isPlaying ? 'Speaking' :
-                                gameState.waitingForUserResponse ? 'Waiting for your response' :
-                                gameState.isGameEnded ? 'Game Complete' : 'Waiting'
-                            }
-                        </div>
-                    </div>
-                </div>
-            </div>
-
+            
             <div className="mb-6 space-x-4">
                 <button
                     onClick={runGameLoop}

@@ -15,13 +15,13 @@ function Participant({ imgSrc, name, heart }) {
 export const Participants = () => {
   const firstRow = [
     { imgSrc: '/img/marvey.jpg', name: 'Host', heart: '❤️❤️❤️❤️' },
-    { imgSrc: '/img/target.jpg', name: 'Clarissa', heart: '❤️❤️❤️❤️' },
+    { imgSrc: '/img/target.jpg', name: 'Clarissa', heart: '🎤' },
   ];
 
   const secondRow = [
-    { imgSrc: '/img/brad.jpg', name: 'AI 1', heart: '❤️❤️❤️❤️' },
-    { imgSrc: '/img/chad.jpg', name: 'AI 2', heart: '❤️❤️❤️❤️' },
-    { imgSrc: '/img/jacques.jpg', name: 'You', heart: '❤️❤️❤️❤️' },
+    { imgSrc: '/img/brad.jpg', name: 'AI 1', heart: '🤖' },
+    { imgSrc: '/img/chad.jpg', name: 'AI 2', heart: '🤖' },
+    { imgSrc: '/img/jacques.jpg', name: 'You', heart: '😅' },
   ];
 
   return (
