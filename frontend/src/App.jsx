@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChatInterface } from './components/ChatInterface';
+import { Participants } from './components/Participants';
 
 const REACT_APP_ELEVENLABS_API_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY;
 const GAME_SERVER_URL = 'http://51.159.182.101:80';
@@ -454,6 +455,11 @@ function App() {
     return (
         <div className="app-container">
             <h1 className="text-3xl font-bold mb-6 text-purple-800">AI Dating Game Show</h1>
+            
+            {/*Participant avatars*/}
+            <div className="top-container">
+                <Participants />
+            </div>
 
             {error && (
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 flex justify-between items-center">

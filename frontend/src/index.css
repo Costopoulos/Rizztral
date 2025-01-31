@@ -36,6 +36,11 @@ body {
   justify-content: center;
   align-items: flex-start;
   background-color: #242424;
+  background-image: url('/img/bg.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
 }
 
 h1 {
