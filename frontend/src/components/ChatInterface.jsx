@@ -9,8 +9,31 @@ export const ChatInterface = ({
     handleUserResponse,
     conversationHistory
 }) => {
+    // Get unique rounds and sort them in descending order (newest first)
+    const rounds = [...new Set(conversationHistory.map(conv => conv.round))]
+        .sort((a, b) => b - a);
+
     return (
         <div className="flex flex-col gap-4 w-3/5 mx-auto">
+            {gameState.winner && (
+                <div className="bg-green-100 p-6 rounded-lg shadow-lg">
+                    <h2 className="text-2xl font-bold text-green-800 mb-2">
+                        Winner Announcement!
+                    </h2>
+                    <p className="text-lg text-green-700">
+                        {gameState.winner === 'contestant3' ? 'Congratulations! You won!' :
+                            `AI Contestant ${gameState.winner.slice(-1)} won!`}
+                    </p>
+                    {gameState.stage === 'game_complete' && (
+                        <button
+                            onClick={() => window.location.reload()}
+                            className="mt-4 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-colors"
+                        >
+                            Play Again
+                        </button>
+                    )}
+                </div>
+            )}
             <div className="bg-white rounded-lg shadow-lg p-6">
                 {gameState.waitingForUserResponse && (
                     <div className="mb-4">
