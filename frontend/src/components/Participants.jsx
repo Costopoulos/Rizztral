@@ -41,8 +41,8 @@ export const Participants = ({ gameState }) => {
               name={participant.name}
               heart={participant.heart}
               isActive={
-                (participant.name === 'Host (AI)' && hostActiveStages.includes(gameState?.stage)) ||
-                (participant.name === 'Clarissa (AI)' && clarissaActiveStages.includes(gameState?.stage))
+                (participant.name === 'Host' && hostActiveStages.includes(gameState?.stage)) ||
+                (participant.name === 'Mistral-Large' && clarissaActiveStages.includes(gameState?.stage))
               }
             />
           ))}
