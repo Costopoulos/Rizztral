@@ -40,7 +40,7 @@ function App() {
 
     const [gameText, setGameText] = useState('');
     const [userResponse, setUserResponse] = useState('');
-    const [timeRemaining, setTimeRemaining] = useState(30);
+    const [timeRemaining, setTimeRemaining] = useState(60);
     const [conversationHistory, setConversationHistory] = useState([]);
     const responseHandledRef = useRef(false);
     const timerRef = useRef(null);
@@ -168,7 +168,7 @@ function App() {
     const startResponseTimer = () => {
         responseHandledRef.current = false;
 
-        setTimeRemaining(30);
+        setTimeRemaining(60);
         if (timerRef.current) {
             clearInterval(timerRef.current);
             timerRef.current = null;
