@@ -113,9 +113,9 @@ export const ChatInterface = ({
                                             {roundConversations.map((conv, index) => {
                                                 const isUser = conv.contestant === 3;
                                                 const avatarMap = {
-                                                    1: '/img/chad.jpg',
+                                                    1: '/img/jacques.jpg',
                                                     2: '/img/brad.jpg',
-                                                    3: '/img/jacques.jpg'
+                                                    3: '/img/chad.jpg'
                                                 };
 
                                                 return (
