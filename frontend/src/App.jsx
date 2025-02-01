@@ -434,7 +434,7 @@ function App() {
                 <GameStatus gameState={gameState}/>
             </div>
 
-            <div className="mb-6 space-x-4">
+            <div className="button-container mb-6 space-x-4">
                 <button
                     onClick={runGameLoop}
                     disabled={gameState.isPlaying || gameState.isGameStarted}
