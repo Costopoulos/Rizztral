@@ -4,7 +4,7 @@ import {Participants} from './components/Participants';
 import {GameStatus} from './components/GameStatus';
 
 const REACT_APP_ELEVENLABS_API_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY;
-const GAME_SERVER_URL = 'https://51.159.182.101:80';
+const GAME_SERVER_URL = 'https://rizztral-backend-406ea0f116bf.herokuapp.com';
 
 const VOICE_IDS = {
     host: 'Ybqj6CIlqb6M85s9Bl4n',
